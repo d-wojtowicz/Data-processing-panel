@@ -4,7 +4,13 @@ import pandas as pd
 
 from variables.lists import numeric_types, conditions_list, dtypes_list
 
-def df_to_gen(df: pd.DataFrame) -> Generator[pd.Series, None, None]:
+def df_to_gen(df: pd.DataFrame) -> Generator[pd.Series, None, None]: 
+    """
+    Generator[pd.Series, None, None]
+    pd.Series - It is generating pd.Series objects (rows)
+    None - does not support .send() method for Generator from typing
+    None - does not support .return() method for Generator from typing
+    """
     for _, row in df.iterrows():
         yield row
 
