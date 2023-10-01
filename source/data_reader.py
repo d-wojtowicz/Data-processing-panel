@@ -1,5 +1,9 @@
+# !TODO: Rewrite all input reads and result returns to operate on the generators from the dataframe rather than the dataframe!!!
+# Details: At the most detailed moments, such as reading by columns or chunks or tuples (etc.),
+# I should read not from the finished dataframe object but from the object passed through iterate_rows 
+# (i.e. read from the generator, not the dataframe)
+
 # TODO: Reading datasets individually (e.g. via input files)
-# TODO: Sklearn data reader
 
 import csv
 

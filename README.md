@@ -14,6 +14,7 @@ nr indeksu: 205881
 
 
 # Wymagania
+Python version: 3.11.4
 System: Windows
 Potrzebne do pełnego działania programu biblioteki oraz moduły zawarte zostały w pliku requirements.txt.
 *W przypadku zaimplementowania dodatkowych bibliotek należy wygenerować nowy plik requirements.txt poprzez komendę:
