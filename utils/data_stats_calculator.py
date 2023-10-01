@@ -1,6 +1,3 @@
-# TODO: Enhance usability of calc class methods (Full description below)
-
-
 import time #Pomiar czasu funkcji
 import sys  #Pomiar wielkości obiektu
 import pandas as pd
@@ -10,36 +7,29 @@ from source.data_reader import *
 
 class calc:
     @staticmethod
-    def timeMeasure(func):
-        t_start = time.process_time()
-        eval(func)
-        t_end = time.process_time()
-        return t_end - t_start
-
-    @staticmethod
-    def sizeMeasure(obj):
-        return sys.getsizeof(eval(obj)) #[Bytes]
-    
-
-    """ timeMeasure and sizeMeasure functions pass parameters in the form of a string.
-    Should instead work like delegates and pass ready functions as arguments. """
-    # It should be corrected to something like this:
-
-    """ 
-    class calc:
-    @staticmethod
-    def timeMeasure(func):
-        print("S")
+    def fullMeasure(func):
         def wrapper(*args, **kwargs):
             t_start = time.process_time()
-            print(str(func))
+            result = func(*args, **kwargs)
             t_end = time.process_time()
-            return t_end - t_start
+            print(f"{func}: (Czas: {t_end - t_start} [s]; Pojemność: {sys.getsizeof(result)} [bajtów])")
+            return result
+        return wrapper
+    
+    @staticmethod
+    def timeMeasure(func):
+        def wrapper(*args, **kwargs):
+            t_start = time.process_time()
+            result = func(*args, **kwargs)
+            t_end = time.process_time()
+            print(f"{func}: (Czas: {t_end - t_start} [s])")
+            return result
         return wrapper
 
     @staticmethod
     def sizeMeasure(obj):
         def wrapper(*args, **kwargs):
-            return sys.getsizeof(obj(*args, **kwargs)) #[Bytes]
-        return wrapper 
-    """
+            result = obj(*args, **kwargs)
+            print(f"{obj}: (Pojemność: {sys.getsizeof(result)} [bajtów])")
+            return result
+        return wrapper
