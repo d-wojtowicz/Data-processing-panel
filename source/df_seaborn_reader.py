@@ -30,7 +30,7 @@ def read_df_from_seaborn(dfName: str, location_method: Enum = read_from.TOP, str
     else:
         raise Exception("Your dataframe name is wrong!")
 
-    return result_df
+    return result_df.reset_index(drop=True)
 
 def read_from_csv(file_name: str, number_of_rows: int) -> pd.DataFrame:
     for chunk in pd.read_csv(file_name, chunksize=number_of_rows):
