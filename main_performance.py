@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     # Testing performance on the example of 'diamonds' seaborn dataframe set:
     full_measure_with_seaborn = calc.fullMeasure(read_df_from_seaborn)
-    size_measure_of_generator = calc.sizeMeasure(iterate_rows)
+    size_measure_of_generator = calc.sizeMeasure(df_to_gen)
 
     column_method_as_df = full_measure_with_seaborn("diamonds", read_from.TOP, read_by.COLUMNS, 100)
     row_method_as_df = full_measure_with_seaborn("diamonds", read_from.TOP, read_by.ROWS, 100) # PerformanceWarning

@@ -4,9 +4,13 @@ import pandas as pd
 
 from variables.lists import numeric_types, conditions_list, dtypes_list
 
-def iterate_rows(df: pd.DataFrame) -> Generator[pd.Series, None, None]:
+def df_to_gen(df: pd.DataFrame) -> Generator[pd.Series, None, None]:
     for _, row in df.iterrows():
         yield row
+
+def gen_to_df(gen) -> pd.DataFrame:
+    return pd.concat(gen, ignore_index=True)
+
 
 def get_columns(df: pd.DataFrame) -> list:
     return df.columns.to_list()
