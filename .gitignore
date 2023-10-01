@@ -1,4 +1,5 @@
-HELPFUL_THINGS/
-files/
+HELPFUL_THINGS
+files
 
 __pycache__
+venv
