@@ -1,4 +1,9 @@
 import seaborn as sns
+import string
+
+# Data generator
+data_types = ["number", "text", "char"]
+letters = string.ascii_lowercase
 
 # Data reader
 seaborn_libraries = sns.get_dataset_names()
