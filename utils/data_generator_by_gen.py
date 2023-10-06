@@ -1,10 +1,9 @@
 import pandas as pd
-import string
 
 from random import randint, choice
 from variables.lists import data_types, letters
 
-def generate_dataframe(number_of_cols: int, number_of_records: int):
+def generate_dataframe_by_gen(number_of_cols: int, number_of_records: int):
     def generate_dataframe_generator() -> pd.DataFrame:
         col_names = ["Column" + str(i+1) for i in range(number_of_cols)]
         col_types = [choice(data_types) for _ in range(number_of_cols)]
