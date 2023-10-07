@@ -9,9 +9,10 @@ from utils.pandas_extension import *
 # TESTING GENERATOR FUNCTIONS
 genMakingMeasure = calc.fullMeasure(generate_dataframe)
 dfMakingMeasure = calc.fullMeasure(gen_to_df)
-exportMeasure = calc.fullMeasure(export_to_txt) 
+txtExportMeasure = calc.fullMeasure(export_to_txt) 
+jsonExportMeasure = calc.fullMeasure(export_to_json)
 
-gen_of_small_df = genMakingMeasure(100, 500)       # e.g. Generator creating objects (based on the specified pattern)
+gen_of_small_df = genMakingMeasure(10, 25)       # e.g. Generator creating objects (based on the specified pattern)
 #gen_of_medium_df = genMakingMeasure(10, 500)
 #gen_of_big_df = genMakingMeasure(15, 5000)
 #gen_of_large = genMakingMeasure(20, 25000)
@@ -21,6 +22,10 @@ df_small = dfMakingMeasure(gen_of_small_df)
 #df_big = dfMakingMeasure(gen_of_big_df)
 #df_large = dfMakingMeasure(gen_of_large_df)
 
-exportMeasure(df_small, "as_df")
 small_df_in_generator =  df_to_gen(df_small)    # e.g. Generator storing object (compressing the storage)
-exportMeasure(small_df_in_generator, "as_gen")
+
+#txtExportMeasure(df_small, "as_df")
+#txtExportMeasure(small_df_in_generator, "as_gen")
+
+jsonExportMeasure(df_small, "as_df")
+jsonExportMeasure(small_df_in_generator, "as_gen")
