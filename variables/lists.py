@@ -14,3 +14,6 @@ numeric_types = ['int', 'int64', 'float', 'float64']
 conditions_list = ['less', 'less than or equal', 'equal', 'greater than or equal', 'greater', '<', '<=', '==', '>=', '>']
 dtypes_list = ['category', 'object']
 
+# Data exporter
+value_separator = ","
+row_separator = ";"
