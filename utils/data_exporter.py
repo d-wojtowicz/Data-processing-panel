@@ -1,17 +1,15 @@
-# *TODO: Extend functionality by adding the same action with the help of generators.
-# TODO: Add export to .xlsx, .csv, .pdf
-
 import os
+import pandas as pd
 
 import csv
 import json
 import openpyxl
-import pandas as pd
+from reportlab.platypus import SimpleDocTemplate, Table, PageBreak
 
 from datetime import date, datetime
 from typing import Union
 from types import GeneratorType
-from variables.lists import value_separator, row_separator
+from variables.lists import value_separator, row_separator, PAGE_SIZE, PAGE_WIDTH, MARGIN
 
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 relative_path = "files"
@@ -39,7 +37,6 @@ def export_to_txt(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) -
         else:
             raise Exception("Unwanted input data types.")
     
-
 def export_to_json(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) -> None:
     full_path = filepath_creator(file_name, "json")
     
@@ -90,6 +87,45 @@ def export_to_xlsx(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) 
     else:
         raise Exception("Unwanted input data types.")
         
+def export_to_pdf(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) -> None: # Without generator :(
+    full_path = filepath_creator(file_name, "pdf")
+    pdfFile = SimpleDocTemplate(full_path, pagesize=PAGE_SIZE)
+    if type(dataset) == GeneratorType:
+        dataset = pd.DataFrame(dataset)
+
+    if type(dataset) == pd.DataFrame:
+        max_column_width = (PAGE_WIDTH - 2*MARGIN)
+
+        pages = []
+        elements = []
+        current_page_data = []
+        current_page_width = 0
+
+        for col in dataset.columns:
+            col_width = max(dataset[col].astype(str).apply(len))+15
+            if current_page_width + col_width <= max_column_width:
+                current_page_data.append(dataset[col])
+                current_page_width += col_width
+            else: 
+                pages.append(current_page_data)
+                current_page_data = [dataset[col]]
+                current_page_width = col_width
+        
+        pages.append(current_page_data)
+
+        for page in pages:
+            df = pd.concat(page, axis=1)
+            table = Table([df.columns.tolist()] + df.values.tolist())
+
+            if page != pages[-1]:
+                elements.append(table)
+                elements.append(PageBreak())
+            else:
+                elements.append(table)
+            
+        pdfFile.build(elements)
+    else:
+        raise Exception("Unwanted input data types.")
 
 def filepath_creator(file_name: str, extension: str) -> str:
     todays_date = str(datetime.now().strftime("%d%m%Y_%H%M%S"))

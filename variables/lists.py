@@ -1,5 +1,6 @@
 import seaborn as sns
 import string
+from reportlab.lib.pagesizes import A4
 
 # Data generator
 data_types = ["number", "text", "char"]
@@ -17,3 +18,6 @@ dtypes_list = ['category', 'object']
 # Data exporter
 value_separator = ","
 row_separator = ";"
+PAGE_SIZE = A4
+PAGE_WIDTH = 210 # [mm] Width for A4
+MARGIN = 15

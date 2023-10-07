@@ -1,9 +1,5 @@
-import time #Pomiar czasu funkcji
-import sys  #Pomiar wielkości obiektu
-import pandas as pd
-import seaborn as sns
-
-from source.data_reader import *
+import time 
+import sys
 
 class calc:
     @staticmethod
