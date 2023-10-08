@@ -10,7 +10,7 @@ from utils.pandas_extension import *
 
 dfMakingMeasure = calc.fullMeasure(gen_to_df) # Turned on time & storage measurement of Parsing types from Gen to Df
 
-# TESTING GENERATOR (FROM GEN) FUNCTIONS
+# TESTING CREATOR (FROM GEN) FUNCTIONS
 dataMakingByGenMeasure = calc.fullMeasure(generate_dataframe_by_gen) # Turned on time & storage measurement of Generating Dataframe by generator
 
 # Creating Generators 
@@ -35,7 +35,7 @@ print("DATAFRAME MADE FROM GENERATOR:\n", df_small_obj)
   
 
   
-# TESTING GENERATOR (FROM OBJ) FUNCTIONS
+# TESTING CREATOR (FROM OBJ) FUNCTIONS
 dataMakingByObjMeasure = calc.fullMeasure(generate_dataframe_by_obj) # Turned on time & storage measurement of Generating Dataframe by objects
 
 # Creating by Objects (using str, int, pd.Series & pd.DataFrame)
