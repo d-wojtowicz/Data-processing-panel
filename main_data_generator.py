@@ -8,27 +8,60 @@ from utils.data_stats_calculator import *
 from utils.data_exporter import *
 from utils.pandas_extension import *
 
-dataMakingByGenMeasure = calc.fullMeasure(generate_dataframe_by_gen)
-dataMakingByObjMeasure = calc.fullMeasure(generate_dataframe_by_obj)
-dfTransformingMeasure = calc.fullMeasure(gen_to_df)
+dfMakingMeasure = calc.fullMeasure(gen_to_df) # Turned on time & storage measurement of Parsing types from Gen to Df
 
-# Creating by Generator
-gen_small = dataMakingByGenMeasure(5, 25)
+# TESTING GENERATOR (FROM GEN) FUNCTIONS
+dataMakingByGenMeasure = calc.fullMeasure(generate_dataframe_by_gen) # Turned on time & storage measurement of Generating Dataframe by generator
+
+# Creating Generators 
+gen_small = dataMakingByGenMeasure(10, 25)       # e.g. Generator creating objects (based on the specified pattern)
 #gen_medium = dataMakingByGenMeasure(10, 500)
 #gen_big = dataMakingByGenMeasure(15, 5000)
 #gen_large = dataMakingByGenMeasure(20, 25000)
 
+# Transforming from GEN to OBJ of Dataframe (From prepared generators)
+df_small_obj = dfMakingMeasure(gen_small)
+#df_medium_obj = dfMakingMeasure(gen_medium)
+#df_big_obj = dfMakingMeasure(gen_big)
+#df_large_obj = dfMakingMeasure(gen_large)
+
+# Transforming from OBJ of Dataframe to GEN (Reverse from prepared objects based on prepared generators) 
+df_small_gen = df_to_gen(df_small_obj)    # e.g. Generator storing object (compressing the storage)
+#df_medium_gen = df_to_gen(df_medium_obj)
+#df_big_gen = df_to_gen(df_big_obj)
+#df_large_gen = df_to_gen(df_large_obj)
+
+print("DATAFRAME MADE FROM GENERATOR:\n", df_small_obj)
+  
+
+  
+# TESTING GENERATOR (FROM OBJ) FUNCTIONS
+dataMakingByObjMeasure = calc.fullMeasure(generate_dataframe_by_obj) # Turned on time & storage measurement of Generating Dataframe by objects
+
 # Creating by Objects (using str, int, pd.Series & pd.DataFrame)
-df_small = dataMakingByObjMeasure(5, 25)
-#df_medium = dataMakingByObjMeasure(10, 500)
-#df_big = dataMakingByObjMeasure(15, 5000)
-#df_large = dataMakingByObjMeasure(20, 25000)
+df_small_obj2 = dataMakingByObjMeasure(5, 25)
+#df_medium_obj2 = dataMakingByObjMeasure(10, 500)
+#df_big_obj2 = dataMakingByObjMeasure(15, 5000)
+#df_large_obj2 = dataMakingByObjMeasure(20, 25000)
 
-# Transforming from GEN to OBJ of Dataframe
-gen_to_df_small = dfTransformingMeasure(gen_small)
-#gen_to_df_medium =dfTransformingMeasure(gen_medium)
-#gen_to_df_big = dfTransformingMeasure(gen_big)
-#gen_to_df_large = dfTransformingMeasure(gen_large)
+print("DATAFRAME MADE FROM OBJECTS:\n", df_small_obj2)
 
-print(gen_to_df_small)
-print(df_small)
+
+
+# TESTING EXPORTS
+txtExportMeasure = calc.fullMeasure(export_to_txt) 
+jsonExportMeasure = calc.fullMeasure(export_to_json)
+csvExportMeasure = calc.fullMeasure(export_to_csv)
+xlsxExportMeasure = calc.fullMeasure(export_to_xlsx)
+pdfExportMeasure = calc.fullMeasure(export_to_pdf)
+
+#txtExportMeasure(df_small_obj, "as_df")
+#txtExportMeasure(df_small_gen, "as_gen")
+#jsonExportMeasure(df_small_obj, "as_df")
+#jsonExportMeasure(df_small_gen, "as_gen")
+#csvExportMeasure(df_small_obj, "as_df")
+#csvExportMeasure(df_small_gen, "as_gen")
+#xlsxExportMeasure(df_small_obj, "as_df")
+#xlsxExportMeasure(df_small_gen, "as_gen")
+#pdfExportMeasure(df_small_obj, "as_df")
+#pdfExportMeasure(df_small_gen, "as_gen")
