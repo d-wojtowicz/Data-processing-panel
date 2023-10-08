@@ -2,21 +2,20 @@ import csv
 
 import seaborn as sns
 import pandas as pd
+from types import GeneratorType
 
 from variables.enumerators import *
 from variables.lists import *
 
 # Main functions - methods to read data
 def read_df_from_seaborn(dfName: str, location_method: Enum = read_from.TOP, structure_method: Enum = read_by.NORMAL, limit: int = 1000) -> pd.DataFrame:
-    result_df = pd.DataFrame()
-    
     if dfName is not None:
         if dfName in seaborn_libraries:
             match structure_method:
                 case read_by.NORMAL:
-                    result_df = normal_reader(dfName, location_method, limit)
+                    result_gen = normal_reader(dfName, location_method, limit)
                 case read_by.COLUMNS:
-                    result_df = column_reader(dfName, location_method, limit)
+                    result_gen = column_reader(dfName, location_method, limit)
                 case read_by.ROWS:
                     result_df = rows_reader(dfName, location_method, limit)
                 case read_by.TUPLES:
@@ -29,8 +28,8 @@ def read_df_from_seaborn(dfName: str, location_method: Enum = read_from.TOP, str
             raise Exception("There is no dataframe in the Seaborn package with this dfName!")
     else:
         raise Exception("Your dataframe name is wrong!")
-
-    return result_df.reset_index(drop=True)
+    
+    return result_gen
 
 def read_from_csv(file_name: str, number_of_rows: int) -> pd.DataFrame:
     for chunk in pd.read_csv(file_name, chunksize=number_of_rows):
@@ -39,24 +38,21 @@ def read_from_csv(file_name: str, number_of_rows: int) -> pd.DataFrame:
 
 
 # Structured smaller functions - to support major functionalities
-def normal_reader(dfName: str, location_method: Enum, limit: int) -> pd.DataFrame:
-    result_df = pd.DataFrame()
-
+def normal_reader(dfName: str, location_method: Enum, limit: int) -> GeneratorType:
     match location_method:
         case read_from.TOP:
-            result_df = sns.load_dataset(dfName).head(limit)      
+            for _, row in sns.load_dataset(dfName).head(limit).iterrows():
+                yield row
         case read_from.BOTTOM:
-            result_df = sns.load_dataset(dfName).tail(limit) 
+            for _, row in sns.load_dataset(dfName).tail(limit).iterrows():
+                yield row
         case read_from.RANDOM:
-            result_df = sns.load_dataset(dfName).sample(limit) 
+            for _, row in sns.load_dataset(dfName).sample(limit).iterrows():
+                yield row
         case _:
             raise Exception("You did not specified correct 'read_from' enumerator value!")
 
-    return result_df
-
-def column_reader(dfName: str, location_method: Enum, limit: int) -> pd.DataFrame:
-    result_df = pd.DataFrame()
-
+def column_reader(dfName: str, location_method: Enum, limit: int) -> GeneratorType:
     match location_method:
         case read_from.TOP:
             for col_name, data in sns.load_dataset(dfName).head(limit).items():

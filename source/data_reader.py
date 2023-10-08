@@ -12,8 +12,8 @@ import pandas as pd
 
 from variables.enumerators import *
 from variables.lists import *
-from source.df_seaborn_reader import read_df_from_seaborn
-from source.df_sklearn_reader import read_df_from_sklearn
+from source.df_seaborn_reader_by_gen import read_df_from_seaborn
+from source.df_sklearn_reader_by_gen import read_df_from_sklearn
 
 class DataReader(object):
     def __init__(self, df_name: str, df_source: str, location_method: Enum = read_from.TOP, structure_method: Enum = read_by.NORMAL, limit: int = 1000):
@@ -39,4 +39,4 @@ class DataReader(object):
         except:
             raise Exception("The dataset could NOT be readed!")
 
-        return df
+        return pd.DataFrame(df)
