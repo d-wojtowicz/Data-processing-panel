@@ -7,6 +7,7 @@ from utils.pandas_extension import *
 
 from source.data_reader import *
 
+
 if __name__ == "__main__":
 
     # Testing performance on the example of 'diamonds' seaborn dataframe set:
