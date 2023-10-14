@@ -1,3 +1,6 @@
+# TODO: TEST ALL EXPORTS FROM ALL FORMATS & REPAIR THEM (BUT FIRSTLY REFACTOR DATA READER TO USE OF GENERATORS)
+# TODO: REFACTOR ALL GENERATED_FROM WHERE I NEED
+
 import os
 import pandas as pd
 
@@ -28,9 +31,16 @@ def export_to_txt(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) -
             columns_displayed = False
             for row in dataset:
                 if not columns_displayed:
-                    column_str = value_separator.join(map(str, row.keys()))
+                    if type(row) == tuple: # If first row is tuple then it is Tuple GEN
+                        column_names = row
+                    else:
+                        column_names = row.keys()
+                        
+                    column_str = value_separator.join(map(str, column_names))
                     Txt.write(column_str + row_separator + "\n")
                     columns_displayed = True
+                    if type(row) == tuple: 
+                        continue
                 
                 row_str = value_separator.join(map(str, row))
                 Txt.write(row_str + row_separator + "\n")
@@ -45,8 +55,26 @@ def export_to_json(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) 
             df = dataset.to_json(orient="records", lines=True)
             Json.write(df)
         elif type(dataset) == GeneratorType:
+            checked_the_generator = False
+            checked_the_column_names = False
             for row in dataset:
-                Json.write(json.dumps(row.to_dict()) + "\n")
+                if not checked_the_generator:
+                    GENERATED_FROM = generator_checker(row)
+                    checked_the_generator = True
+
+                match GENERATED_FROM:
+                    case "TUPLE_GENERATOR":
+                        if not checked_the_column_names:
+                            column_names = list(row)
+                            checked_the_column_names = True
+                            continue
+                        row_to_save = pd.DataFrame([row], columns=column_names).to_json(orient="records", lines=True)
+                    case "OTHER_GENERATOR":
+                        row_to_save = json.dumps(row.to_dict()) + "\n"
+                    case _:
+                        raise Exception("The dataset could NOT be exported!")
+                    
+                Json.write(row_to_save)
         else:
             raise Exception("Unwanted input data types.")
         
@@ -57,13 +85,28 @@ def export_to_csv(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) -
         if type(dataset) == pd.DataFrame:
             dataset.to_csv(Csv, index=False, sep=value_separator, header=True)
         elif type(dataset) == GeneratorType:
+            checked_the_generator = False
+            checked_the_column_names = False
+
             csv_writer = csv.writer(Csv, delimiter=value_separator)
-            
-            column_displayed = False
             for row in dataset:
-                if not column_displayed:
-                    csv_writer.writerow(row.keys())
-                    column_displayed = True
+                if not checked_the_generator:
+                    GENERATED_FROM = generator_checker(row)
+                    checked_the_generator = True
+
+                match GENERATED_FROM:
+                    case "TUPLE_GENERATOR":
+                        if not checked_the_column_names:
+                            csv_writer.writerow(list(row))
+                            checked_the_column_names = True
+                            continue
+                    case "OTHER_GENERATOR":
+                        if not checked_the_column_names:
+                            csv_writer.writerow(row.keys())
+                            checked_the_column_names = True
+                    case _:
+                        raise Exception("The dataset could NOT be exported!")
+                    
                 csv_writer.writerow(row)
         else:
             raise Exception("Unwanted input data types.")
@@ -74,15 +117,33 @@ def export_to_xlsx(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) 
     if type(dataset) == pd.DataFrame:
         dataset.to_excel(full_path, index=False, header=True)
     elif type(dataset) == GeneratorType:
+        checked_the_generator = False
+        checked_the_column_names = False
+
         excelFile = openpyxl.Workbook()
         excelSheet = excelFile.active
-
-        column_displayed = False
         for row in dataset:
-            if not column_displayed:
-                excelSheet.append(row.keys().tolist())
-                column_displayed = True
-            excelSheet.append(row.tolist())
+            if not checked_the_generator:
+                GENERATED_FROM = generator_checker(row)
+                checked_the_generator = True
+
+            match GENERATED_FROM:
+                case "TUPLE_GENERATOR":
+                    if not checked_the_column_names:
+                        excelSheet.append(list(row))
+                        checked_the_column_names = True
+                        continue
+                    row_to_save = row
+                case "OTHER_GENERATOR":
+                    if not checked_the_column_names:
+                        excelSheet.append(row.keys().tolist())
+                        checked_the_column_names = True
+                    row_to_save = row.tolist()
+                case _:
+                    raise Exception("The dataset could NOT be exported!")
+                
+            excelSheet.append(row_to_save)
+
         excelFile.save(full_path)
     else:
         raise Exception("Unwanted input data types.")
@@ -91,7 +152,13 @@ def export_to_pdf(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) -
     full_path = filepath_creator(file_name, "pdf")
     pdfFile = SimpleDocTemplate(full_path, pagesize=PAGE_SIZE)
     if type(dataset) == GeneratorType:
-        dataset = pd.DataFrame(dataset)
+        row = next(dataset)
+        GENERATED_FROM = generator_checker(row)
+        match GENERATED_FROM:
+            case "TUPLE_GENERATOR":
+                dataset = pd.DataFrame(pd.DataFrame(dataset), columns=row)
+            case "OTHER_GENERATOR": # Works for row
+                dataset = pd.concat([pd.DataFrame([row]), pd.DataFrame(dataset)])
 
     if type(dataset) == pd.DataFrame:
         max_column_width = (PAGE_WIDTH - 2*MARGIN)
@@ -133,3 +200,9 @@ def filepath_creator(file_name: str, extension: str) -> str:
     full_path = os.path.join(files_path, file_name)
 
     return full_path
+
+def generator_checker(row) -> str:
+    GENERATED_FROM = "OTHER_GENERATOR"
+    if type(row) == tuple: # If first row is tuple then it is Tuple GEN
+        GENERATED_FROM = "TUPLE_GENERATOR"
+    return GENERATED_FROM
