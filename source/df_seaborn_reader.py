@@ -144,18 +144,16 @@ def chunks_reader_by_gen(dfName: str, location_method: Enum, limit: int, ADJUSTA
     match location_method:
         case read_from.TOP:
             for partial_result_df in dataframe_chunk_generator(sns.load_dataset(dfName).head(limit), ADJUSTABLE_CHUNK_SIZE):
-                print(partial_result_df)
+                yield partial_result_df
         case read_from.BOTTOM:
             for partial_result_df in dataframe_chunk_generator(sns.load_dataset(dfName).tail(limit), ADJUSTABLE_CHUNK_SIZE):
-                result_df = pd.concat([result_df, partial_result_df], ignore_index=True)
+                yield partial_result_df
         case read_from.RANDOM:
             for partial_result_df in dataframe_chunk_generator(sns.load_dataset(dfName).sample(limit), ADJUSTABLE_CHUNK_SIZE):
-                result_df = pd.concat([result_df, partial_result_df], ignore_index=True)
+                yield partial_result_df
         case _:
             raise Exception("You did not specified correct 'read_from' enumerator value!")
-
-    return result_df
-
+        
 def chunks_reader(dfName: str, location_method: Enum, limit: int, ADJUSTABLE_CHUNK_SIZE: int) -> pd.DataFrame:
     result_df = pd.DataFrame()
     

@@ -10,9 +10,10 @@ import openpyxl
 from reportlab.platypus import SimpleDocTemplate, Table, PageBreak
 
 from datetime import date, datetime
-from typing import Union
+from typing import Union, Any
 from types import GeneratorType
 from variables.lists import value_separator, row_separator, PAGE_SIZE, PAGE_WIDTH, MARGIN
+from utils.pandas_extension import gen_to_df
 
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 relative_path = "files"
@@ -30,20 +31,34 @@ def export_to_txt(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) -
         elif type(dataset) == GeneratorType:
             columns_displayed = False
             for row in dataset:
+                if not checked_the_generator:
+                    GENERATED_FROM = generator_checker(row)
+                    checked_the_generator = True
+
                 if not columns_displayed:
-                    if type(row) == tuple: # If first row is tuple then it is Tuple GEN
-                        column_names = row
-                    else:
-                        column_names = row.keys()
+                    match GENERATED_FROM:
+                        case "TUPLE_GENERATOR":
+                            column_names = row
+                        case "CHUNK_GENERATOR":
+                            column_names = row.columns
+                        case "OTHER_GENERATOR":
+                            column_names = row.keys()
+                        case _:
+                            raise Exception("The dataset could NOT be exported!")
                         
                     column_str = value_separator.join(map(str, column_names))
                     Txt.write(column_str + row_separator + "\n")
                     columns_displayed = True
-                    if type(row) == tuple: 
+                    if GENERATED_FROM == "TUPLE_GENERATOR": 
                         continue
-                
-                row_str = value_separator.join(map(str, row))
-                Txt.write(row_str + row_separator + "\n")
+
+                if GENERATED_FROM == "CHUNK_GENERATOR":
+                    for _, single_row in row.iterrows():
+                        row_str = value_separator.join(map(str, single_row))
+                        Txt.write(row_str + row_separator + "\n")
+                else:
+                    row_str = value_separator.join(map(str, row))
+                    Txt.write(row_str + row_separator + "\n")
         else:
             raise Exception("Unwanted input data types.")
     
@@ -69,6 +84,8 @@ def export_to_json(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) 
                             checked_the_column_names = True
                             continue
                         row_to_save = pd.DataFrame([row], columns=column_names).to_json(orient="records", lines=True)
+                    case "CHUNK_GENERATOR":
+                        row_to_save = row.to_json(orient="records", lines=True)
                     case "OTHER_GENERATOR":
                         row_to_save = json.dumps(row.to_dict()) + "\n"
                     case _:
@@ -100,6 +117,10 @@ def export_to_csv(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) -
                             csv_writer.writerow(list(row))
                             checked_the_column_names = True
                             continue
+                    case "CHUNK_GENERATOR":
+                        if not checked_the_column_names:
+                            csv_writer.writerow(list(row.columns))
+                            checked_the_column_names = True
                     case "OTHER_GENERATOR":
                         if not checked_the_column_names:
                             csv_writer.writerow(row.keys())
@@ -107,7 +128,11 @@ def export_to_csv(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) -
                     case _:
                         raise Exception("The dataset could NOT be exported!")
                     
-                csv_writer.writerow(row)
+                if GENERATED_FROM == "CHUNK_GENERATOR":
+                    for _, single_row in row.iterrows():
+                        csv_writer.writerow(single_row)
+                else:
+                    csv_writer.writerow(row)
         else:
             raise Exception("Unwanted input data types.")
 
@@ -134,6 +159,11 @@ def export_to_xlsx(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) 
                         checked_the_column_names = True
                         continue
                     row_to_save = row
+                case "CHUNK_GENERATOR":
+                    if not checked_the_column_names:
+                        excelSheet.append(list(row.columns))
+                        checked_the_column_names = True
+                    rows_to_save = row
                 case "OTHER_GENERATOR":
                     if not checked_the_column_names:
                         excelSheet.append(row.keys().tolist())
@@ -142,7 +172,11 @@ def export_to_xlsx(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) 
                 case _:
                     raise Exception("The dataset could NOT be exported!")
                 
-            excelSheet.append(row_to_save)
+            if GENERATED_FROM == "CHUNK_GENERATOR":
+                for _, single_row in rows_to_save.iterrows():
+                    excelSheet.append(list(single_row))
+            else:
+                excelSheet.append(row_to_save)
 
         excelFile.save(full_path)
     else:
@@ -157,6 +191,8 @@ def export_to_pdf(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) -
         match GENERATED_FROM:
             case "TUPLE_GENERATOR":
                 dataset = pd.DataFrame(pd.DataFrame(dataset), columns=row)
+            case "CHUNK_GENERATOR":
+                dataset = pd.concat([row, gen_to_df(dataset)])
             case "OTHER_GENERATOR": # Works for row
                 dataset = pd.concat([pd.DataFrame([row]), pd.DataFrame(dataset)])
 
@@ -201,8 +237,10 @@ def filepath_creator(file_name: str, extension: str) -> str:
 
     return full_path
 
-def generator_checker(row) -> str:
+def generator_checker(row: Union[tuple, pd.DataFrame, Any]) -> str:
     GENERATED_FROM = "OTHER_GENERATOR"
     if type(row) == tuple: # If first row is tuple then it is Tuple GEN
         GENERATED_FROM = "TUPLE_GENERATOR"
+    elif type(row) == pd.DataFrame: # If first "row" is dataframe then it is Chunk GEN
+        GENERATED_FROM = "CHUNK_GENERATOR"
     return GENERATED_FROM
