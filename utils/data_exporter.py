@@ -29,6 +29,7 @@ def export_to_txt(dataset: Union[pd.DataFrame, GeneratorType], file_name: str) -
                 row_str = value_separator.join(map(str, row))
                 Txt.write(row_str + row_separator + "\n")
         elif type(dataset) == GeneratorType:
+            checked_the_generator = False
             columns_displayed = False
             for row in dataset:
                 if not checked_the_generator:
