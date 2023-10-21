@@ -31,9 +31,9 @@ def read_df_from_seaborn(dfName: str, location_method: Enum = read_from.TOP, str
                         result_df = tuples_reader(dfName, location_method, limit)           # NON-GEN 
                 case read_by.CHUNKS:
                     if by_gen:
-                        result_df = chunks_reader_by_gen(dfName, location_method, limit, ADJUSTABLE_CHUNK_SIZE=10)   # GEN
+                        result_df = chunks_reader_by_gen(dfName, location_method, limit, ADJUSTABLE_CHUNK_SIZE=1000)   # GEN
                     else:
-                        result_df = chunks_reader(dfName, location_method, limit, ADJUSTABLE_CHUNK_SIZE=10)   # NON-GEN
+                        result_df = chunks_reader(dfName, location_method, limit, ADJUSTABLE_CHUNK_SIZE=1000)   # NON-GEN
                 case _:
                     raise Exception("You chose the wrong enumerator!")
         else:
