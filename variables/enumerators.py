@@ -20,3 +20,11 @@ class read_from(Enum):
     def list(cls):
         return list(map(lambda c: c.value, cls))    
     
+class reader_tester(Enum):
+    SEABORN = "seaborn"
+    SKLEARN = "sklearn"
+    INDIVIDUAL = "individual"
+
+    @classmethod
+    def list(cls):
+        return list(map(lambda c: c.value, cls))
