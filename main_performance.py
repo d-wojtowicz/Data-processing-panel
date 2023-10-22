@@ -1,12 +1,14 @@
-import seaborn as sns
+# TODO: Apply changes due to the OOP refactor of !DataReader and *DataManager
+
 import pandas as pd
 from typing import Union
 
+from utils.pandas_extension import DataManager, df_to_gen, gen_to_df
 from utils.data_stats_calculator import *
 from utils.data_exporter import *
-from utils.pandas_extension import *
-from source.data_reader import *
-from variables.enumerators import reader_tester
+
+from source.data_reader import DataReader
+from variables.enumerators import read_from, read_by, reader_tester
 
 def full_export_tester(dataset: Union[pd.DataFrame, GeneratorType], file_name: str, gen_format: str = "txt") -> None:
     methods = ["txt", "json", "csv", "xlsx", "pdf"]
@@ -139,10 +141,3 @@ if __name__ == "__main__":
             """"""
         case _:
             raise Exception("You selected wrong tester enumerator (Variable 'SELECTED_TESTS' at the top of program).")
-
-
-    # TODO: 3. INDIVIDUAL - df_individual_reader.py
-    # TODO: 3.1. WRITE ALL IMPORTANT FILE TYPE IMPORTS (CSV, XLSX, TXT etc.)
-
-    # TODO: 4. TEST PRINTING OF ALL DF FROM OBJ & ALL DF FROM GEN
-    # TODO: 5. TEST EXPORT OF ALL DF FROM OBJ & ALL DF FROM GEN

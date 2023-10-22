@@ -10,7 +10,8 @@ from utils.pandas_extension import *
 
 
 if __name__ == "__main__":
-    
+    # If necessary, uncomment on what is needed
+
     dfMakingMeasure = calc.fullMeasure(gen_to_df) # Turned on time & storage measurement of Parsing types from Gen to Df
 
     # TESTING CREATOR (FROM GEN) FUNCTIONS

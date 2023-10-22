@@ -24,7 +24,7 @@ class DataSklearnReader(object):
     def read_df_from_sklearn(self) -> None:
         if self.df_name is not None:
             if self.df_name in sklearn_libraries:
-                self.sklearn_df = self.read_full_df_by_name(self.df_name)
+                self.read_full_df_by_name()
                 match self.structure_method:
                     case read_by.NORMAL:
                         self.dataset = self.normal_reader()

@@ -25,11 +25,15 @@ class DataReader(object):
         try:
             if self.df_source in ["sns", "seaborn"]:
                 if self.df_name in seaborn_libraries:
-                    self.dataset = DataSeabornReader(self.df_name, self.location_method, self.structure_method, self.limit, self.by_gen).dataset
+                    DataReaderMethod = DataSeabornReader(self.df_name, self.location_method, self.structure_method, self.limit, self.by_gen)
+                    DataReaderMethod.read_df_from_seaborn()
             elif self.df_source in ["sklearn", "scikit-learn"]:
                 if self.df_name in sklearn_libraries:
-                    self.dataset = DataSklearnReader(self.df_name, self.location_method, self.structure_method, self.limit, self.by_gen).dataset
+                    DataReaderMethod = DataSklearnReader(self.df_name, self.location_method, self.structure_method, self.limit, self.by_gen)
+                    DataReaderMethod.read_df_from_sklearn()
             elif self.df_source.endswith((".txt", ".csv", ".xlsx", ".json")):
-                self.dataset = DataIndividualReader(self.df_source, self.location_method, by_gen=self.by_gen).dataset # Full data are readed
+                DataReaderMethod = DataIndividualReader(self.df_source, self.location_method, by_gen=self.by_gen) # Full data are readed
+                DataReaderMethod.read_df_from_input()
         except:
             raise Exception("The dataset could NOT be readed!")
+        self.dataset = DataReaderMethod.dataset
