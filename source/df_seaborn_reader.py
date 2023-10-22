@@ -52,7 +52,10 @@ def normal_reader(dfName: str, location_method: Enum, limit: int) -> pd.DataFram
         case read_from.BOTTOM:
             return sns.load_dataset(dfName).tail(limit) 
         case read_from.RANDOM:
-            return sns.load_dataset(dfName).sample(limit) 
+            if limit < len(sns.load_dataset(dfName)):
+                return sns.load_dataset(dfName).sample(limit) 
+            else:
+                return sns.load_dataset(dfName).sample()
         case _:
             raise Exception("You did not specified correct 'read_from' enumerator value!")
 
@@ -66,8 +69,12 @@ def column_reader(dfName: str, location_method: Enum, limit: int) -> pd.DataFram
             for col_name, data in sns.load_dataset(dfName).tail(limit).items():
                 result_df[col_name] = data
         case read_from.RANDOM:
-            for col_name, data in sns.load_dataset(dfName).sample(limit).items():
-                result_df[col_name] = data
+            if limit < len(sns.load_dataset(dfName)):
+                for col_name, data in sns.load_dataset(dfName).sample(limit).items():
+                    result_df[col_name] = data
+            else:
+                for col_name, data in sns.load_dataset(dfName).sample().items():
+                    result_df[col_name] = data
         case _:
             raise Exception("You did not specified correct 'read_from' enumerator value!")
         
@@ -82,8 +89,12 @@ def rows_reader_by_gen(dfName: str, location_method: Enum, limit: int) -> Genera
             for _, row in sns.load_dataset(dfName).tail(limit).iterrows():
                 yield row
         case read_from.RANDOM:
-            for _, row in sns.load_dataset(dfName).sample(limit).iterrows():
-                yield row
+            if limit < len(sns.load_dataset(dfName)):
+                for _, row in sns.load_dataset(dfName).sample(limit).iterrows():
+                    yield row
+            else:
+                for _, row in sns.load_dataset(dfName).sample().iterrows():
+                    yield row
         case _:
             raise Exception("You did not specified correct 'read_from' enumerator value!")
         
@@ -98,8 +109,12 @@ def rows_reader(dfName: str, location_method: Enum, limit: int) -> pd.DataFrame:
             for row_index, row in sns.load_dataset(dfName).tail(limit).iterrows():
                 result_df[row_index] = row
         case read_from.RANDOM:
-            for row_index, row in sns.load_dataset(dfName).sample(limit).iterrows():
-                result_df[row_index] = row
+            if limit < len(sns.load_dataset(dfName)):
+                for row_index, row in sns.load_dataset(dfName).sample(limit).iterrows():
+                    result_df[row_index] = row
+            else:
+                for row_index, row in sns.load_dataset(dfName).sample().iterrows():
+                    result_df[row_index] = row
         case _:
             raise Exception("You did not specified correct 'read_from' enumerator value!")
         
@@ -117,9 +132,14 @@ def tuples_reader_by_gen(dfName: str, location_method: Enum, limit: int) -> Gene
             for single_tuple in sns.load_dataset(dfName).tail(limit).itertuples(index=False):
                 yield single_tuple
         case read_from.RANDOM:
-            yield tuple(sns.load_dataset(dfName).columns)
-            for single_tuple in sns.load_dataset(dfName).sample(limit).itertuples(index=False):
-                yield single_tuple
+            if limit < len(sns.load_dataset(dfName)):
+                yield tuple(sns.load_dataset(dfName).columns)
+                for single_tuple in sns.load_dataset(dfName).sample(limit).itertuples(index=False):
+                    yield single_tuple
+            else:
+                yield tuple(sns.load_dataset(dfName).columns)
+                for single_tuple in sns.load_dataset(dfName).sample().itertuples(index=False):
+                    yield single_tuple
         case _:
             raise Exception("You did not specified correct 'read_from' enumerator value!")
 
@@ -132,7 +152,10 @@ def tuples_reader(dfName: str, location_method: Enum, limit: int) -> pd.DataFram
         case read_from.BOTTOM:
             result_df = sns.load_dataset(dfName).tail(limit).itertuples(index=False)
         case read_from.RANDOM:
-            result_df = sns.load_dataset(dfName).sample(limit).itertuples(index=False)
+            if limit < len(sns.load_dataset(dfName)):
+                result_df = sns.load_dataset(dfName).sample(limit).itertuples(index=False)
+            else:
+                result_df = sns.load_dataset(dfName).sample().itertuples(index=False)
         case _:
             raise Exception("You did not specified correct 'read_from' enumerator value!")
             
@@ -147,8 +170,12 @@ def chunks_reader_by_gen(dfName: str, location_method: Enum, limit: int, ADJUSTA
             for partial_result_df in dataframe_chunk_generator(sns.load_dataset(dfName).tail(limit), ADJUSTABLE_CHUNK_SIZE):
                 yield partial_result_df
         case read_from.RANDOM:
-            for partial_result_df in dataframe_chunk_generator(sns.load_dataset(dfName).sample(limit), ADJUSTABLE_CHUNK_SIZE):
-                yield partial_result_df
+            if limit < len(sns.load_dataset(dfName)):
+                for partial_result_df in dataframe_chunk_generator(sns.load_dataset(dfName).sample(limit), ADJUSTABLE_CHUNK_SIZE):
+                    yield partial_result_df
+            else:
+                for partial_result_df in dataframe_chunk_generator(sns.load_dataset(dfName).sample(), ADJUSTABLE_CHUNK_SIZE):
+                    yield partial_result_df
         case _:
             raise Exception("You did not specified correct 'read_from' enumerator value!")
         
@@ -163,8 +190,12 @@ def chunks_reader(dfName: str, location_method: Enum, limit: int, ADJUSTABLE_CHU
             for partial_result_df in dataframe_chunk_generator(sns.load_dataset(dfName).tail(limit), ADJUSTABLE_CHUNK_SIZE):
                 result_df = pd.concat([result_df, partial_result_df], ignore_index=True)
         case read_from.RANDOM:
-            for partial_result_df in dataframe_chunk_generator(sns.load_dataset(dfName).sample(limit), ADJUSTABLE_CHUNK_SIZE):
-                result_df = pd.concat([result_df, partial_result_df], ignore_index=True)
+            if limit < len(sns.load_dataset(dfName)):
+                for partial_result_df in dataframe_chunk_generator(sns.load_dataset(dfName).sample(limit), ADJUSTABLE_CHUNK_SIZE):
+                    result_df = pd.concat([result_df, partial_result_df], ignore_index=True)
+            else:
+                for partial_result_df in dataframe_chunk_generator(sns.load_dataset(dfName).sample(), ADJUSTABLE_CHUNK_SIZE):
+                    result_df = pd.concat([result_df, partial_result_df], ignore_index=True)
         case _:
             raise Exception("You did not specified correct 'read_from' enumerator value!")
 
