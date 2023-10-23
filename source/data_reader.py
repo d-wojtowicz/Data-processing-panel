@@ -21,7 +21,7 @@ class DataReader(object):
         self.limit: int = limit
         self.by_gen: bool = by_gen
 
-    def read_data(self) -> None:
+    def read_data(self) -> Union[pd.DataFrame, GeneratorType]:
         try:
             if self.df_source in ["sns", "seaborn"]:
                 if self.df_name in seaborn_libraries:
@@ -36,4 +36,6 @@ class DataReader(object):
                 DataReaderMethod.read_df_from_input()
         except:
             raise Exception("The dataset could NOT be readed!")
+        
         self.dataset = DataReaderMethod.dataset
+        return self.dataset
