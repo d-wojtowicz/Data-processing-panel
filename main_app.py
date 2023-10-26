@@ -3,6 +3,7 @@
 #TODO: Add GeneratedDF operations
 #TODO: Add IndividualDF operations (input file, read)
 #TODO: Check all methods of data reading for bug hunting
+#TODO: DataFrame splitting by number of rows per page
 
 # 2.
 #TODO: Update result_box by three buttons displaying: Table, Statistical Analysis, Log
@@ -15,7 +16,9 @@
 #TODO: Value_handler refactor
 
 # 4.
+#TODO: Requirements UPDATE!!!
 #TODO: Overall refactor
+#TODO: Facade, response boilerplate & GUI & backend separately
 
 import gradio as gr
 import pandas as pd

@@ -1,5 +1,5 @@
 HELPFUL_THINGS
-files/*
+gen_app/files/*
 
 __pycache__
 venv
