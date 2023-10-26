@@ -1,5 +1,12 @@
-# 1.
+# REPAIR STRUCTURE TEMPLATE PATHS!!!
+
+# 0.
 #TODO: Fix tuples column names & chunk reader
+#TODO: Add new filter ways
+#TODO: Refactor returning of datareader to self.dataset not result
+#TODO: Main_performance apply OOP changes
+
+# 1.
 #TODO: Add GeneratedDF operations
 #TODO: Add IndividualDF operations (input file, read)
 #TODO: Check all methods of data reading for bug hunting
@@ -19,10 +26,12 @@
 #TODO: Requirements UPDATE!!!
 #TODO: Overall refactor
 #TODO: Facade, response boilerplate & GUI & backend separately
+import sys, os
 
 import gradio as gr
 import pandas as pd
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from gen_app.source.data_reader import DataReader
 from gen_app.variables.enumerators import read_by, read_from, reader_tester
 from gen_app.variables.lists import seaborn_libraries, sklearn_libraries
@@ -53,10 +62,32 @@ def value_handler(source_name: str, df_name: str, location_method: str, structur
     dataReader = DataReader(df_name, source_name, location_method, structure_method, row_count)
     result_df = dataReader.read_data()
     return pd.DataFrame(result_df)
-css = """
-    .gradio-container {background-color: rgb(11,15,25)}
-"""
 
+def submit_source(source_name: str):
+    match source_name:
+        case "Seaborn":
+            return {
+                dataset_box: gr.Radio(label="Enter the dataset name: ", value=seaborn_libraries[0], choices=seaborn_libraries, visible=True),
+                output_conf_col: gr.Column(visible=True)
+            }
+        case "Sklearn":
+            return {
+                dataset_box: gr.Radio(label="Enter the dataset name: ", value=sklearn_libraries[0], choices=sklearn_libraries, visible=True),
+                output_conf_col: gr.Column(visible=True)
+            }
+        case "Individual":
+            return {}
+        case _:
+            return {error_box: gr.Textbox(value="Wrong data source selected!", visible=True)}
+                
+def submit_conf(source_name: str, df_name: str, location_method: str, structure_method: str, limit: str):
+    df = value_handler(source_name, df_name, location_method, structure_method, limit)
+    return {
+        output_result_col: gr.Column(visible=True),
+        result_box: gr.DataFrame(label="Result: ", value=df, interactive=1)
+    }
+
+css = """.gradio-container {background-color: rgb(11,15,25)}"""
 if __name__ == "__main__":
     with gr.Blocks() as my_app: #css=css
         error_box = gr.Textbox(label="Error", visible=False)
@@ -74,31 +105,8 @@ if __name__ == "__main__":
         with gr.Column(visible=False) as output_result_col:
             result_box = gr.DataFrame(label="Result: ", interactive=1)
 
-        def submit_source(source_name: str):
-            match source_name:
-                case "Seaborn":
-                    return {
-                        dataset_box: gr.Radio(label="Enter the dataset name: ", value=seaborn_libraries[0], choices=seaborn_libraries, visible=True),
-                        output_conf_col: gr.Column(visible=True)
-                    }
-                case "Sklearn":
-                    return {
-                        dataset_box: gr.Radio(label="Enter the dataset name: ", value=sklearn_libraries[0], choices=sklearn_libraries, visible=True),
-                        output_conf_col: gr.Column(visible=True)
-                    }
-                case "Individual":
-                    return {}
-                case _:
-                    return {error_box: gr.Textbox(value="Wrong data source selected!", visible=True)}
-                
-        def submit_conf(source_name: str, df_name: str, location_method: str, structure_method: str, limit: str):
-            df = value_handler(source_name, df_name, location_method, structure_method, limit)
-            return {
-                output_result_col: gr.Column(visible=True),
-                result_box: gr.DataFrame(label="Result: ", value=df, interactive=1)
-            }
-            
-
+        
+        ### On-click section ###
         submit_source_btn.click(
             submit_source,
             [source_box],
