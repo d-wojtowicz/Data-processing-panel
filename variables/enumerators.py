@@ -1,29 +1,29 @@
 from enum import Enum
 
 class read_by(Enum):
-    COLUMNS = "columns"
-    ROWS = "rows"
-    TUPLES = "tuples"
-    NORMAL = "normal"
-    CHUNKS = "chunks"
+    NORMAL = "Normal"
+    COLUMNS = "Columns"
+    ROWS = "Rows"
+    TUPLES = "Tuples"
+    CHUNKS = "Chunks"
     
     @classmethod
     def list(cls):
         return list(map(lambda c: c.value, cls))
     
 class read_from(Enum):
-    TOP = "head"
-    BOTTOM = "tail"
-    RANDOM = "sample"
+    TOP = "Top"
+    BOTTOM = "Bottom"
+    RANDOM = "Random"
 
     @classmethod
     def list(cls):
         return list(map(lambda c: c.value, cls))    
     
 class reader_tester(Enum):
-    SEABORN = "seaborn"
-    SKLEARN = "sklearn"
-    INDIVIDUAL = "individual"
+    SEABORN = "Seaborn"
+    SKLEARN = "Sklearn"
+    INDIVIDUAL = "Individual"
 
     @classmethod
     def list(cls):

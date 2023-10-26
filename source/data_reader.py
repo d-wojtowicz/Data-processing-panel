@@ -13,8 +13,8 @@ class DataReader(object):
         """ 'by_gen' parameter concerns only to the 'row_reader' & 'tuple_reader' & 'chunk_reader"""
         self.dataset: Union[pd.DataFrame, GeneratorType] = None
 
-        self.df_name: str = df_name
-        self.df_source: str = df_source
+        self.df_name: str = df_name.lower()
+        self.df_source: str = df_source.lower()
 
         self.location_method: Enum = location_method
         self.structure_method: Enum = structure_method
@@ -22,20 +22,26 @@ class DataReader(object):
         self.by_gen: bool = by_gen
 
     def read_data(self) -> Union[pd.DataFrame, GeneratorType]:
+        result = pd.DataFrame()
         try:
-            if self.df_source in ["sns", "seaborn"]:
+            if self.df_source in ["seaborn"]:
                 if self.df_name in seaborn_libraries:
                     DataReaderMethod = DataSeabornReader(self.df_name, self.location_method, self.structure_method, self.limit, self.by_gen)
                     DataReaderMethod.read_df_from_seaborn()
-            elif self.df_source in ["sklearn", "scikit-learn"]:
+                    self.dataset = DataReaderMethod.dataset
+                    result = DataReaderMethod.dataset
+            elif self.df_source in ["sklearn"]:
                 if self.df_name in sklearn_libraries:
                     DataReaderMethod = DataSklearnReader(self.df_name, self.location_method, self.structure_method, self.limit, self.by_gen)
                     DataReaderMethod.read_df_from_sklearn()
+                    self.dataset = DataReaderMethod.dataset
+                    result = DataReaderMethod.dataset
             elif self.df_source.endswith((".txt", ".csv", ".xlsx", ".json")):
                 DataReaderMethod = DataIndividualReader(self.df_source, self.location_method, by_gen=self.by_gen) # Full data are readed
                 DataReaderMethod.read_df_from_input()
+                self.dataset = DataReaderMethod.dataset
+                result = DataReaderMethod.dataset
         except:
             raise Exception("The dataset could NOT be readed!")
-        
-        self.dataset = DataReaderMethod.dataset
-        return self.dataset
+
+        return result
