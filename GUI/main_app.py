@@ -23,9 +23,9 @@
 import gradio as gr
 import pandas as pd
 
-from source.data_reader import DataReader
-from variables.enumerators import read_by, read_from, reader_tester
-from variables.lists import seaborn_libraries, sklearn_libraries
+from gen_app.source.data_reader import DataReader
+from gen_app.variables.enumerators import read_by, read_from, reader_tester
+from gen_app.variables.lists import seaborn_libraries, sklearn_libraries
 
 def value_handler(source_name: str, df_name: str, location_method: str, structure_method: str, row_count: int):
     match location_method:

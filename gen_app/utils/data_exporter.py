@@ -17,7 +17,7 @@ from utils.pandas_extension import gen_to_df
 
 project_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 relative_path = "files"
-files_path = os.path.join(project_path, relative_path)
+files_path = os.path.join(os.path.dirname(project_path), relative_path)
 
 class DataExporter(object):
     def __init__(self, dataset: Union[pd.DataFrame, GeneratorType], file_name: str):
