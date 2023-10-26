@@ -3,7 +3,7 @@ import pandas as pd
 from random import randint, choice
 from variables.lists import data_types, letters
 
-class DataGenerator(object):
+class DataGeneratorObj(object):
     def __init__(self, number_of_cols: int, number_of_records: int):
         self.number_of_cols: int = number_of_cols
         self.number_of_records: int = number_of_records

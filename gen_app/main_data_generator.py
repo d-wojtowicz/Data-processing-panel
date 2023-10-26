@@ -1,5 +1,3 @@
-# TODO: Apply changes due to the OOP refactor of !DataReader and *DataManager
-
 import seaborn as sns
 import pandas as pd
 
