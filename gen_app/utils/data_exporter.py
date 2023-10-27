@@ -1,7 +1,6 @@
 # TODO: TEST ALL EXPORTS FROM ALL FORMATS & REPAIR THEM (BUT FIRSTLY REFACTOR DATA READER TO USE OF GENERATORS)
 # TODO: REFACTOR ALL GENERATED_FROM WHERE I NEED
-
-import os
+import sys, os
 import pandas as pd
 
 import csv
@@ -12,6 +11,8 @@ from reportlab.platypus import SimpleDocTemplate, Table, PageBreak
 from datetime import date, datetime
 from typing import Union, Any
 from types import GeneratorType
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from variables.lists import value_separator, row_separator, PAGE_SIZE, PAGE_WIDTH, MARGIN
 from utils.pandas_extension import gen_to_df
 

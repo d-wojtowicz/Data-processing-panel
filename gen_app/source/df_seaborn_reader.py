@@ -1,8 +1,11 @@
+import sys, os
+
 import seaborn as sns
 import pandas as pd
 from typing import Union
 from types import GeneratorType
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from variables.enumerators import *
 from variables.lists import *
 

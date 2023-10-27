@@ -1,5 +1,8 @@
+import sys, os
+
 import pandas as pd
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from random import randint, choice
 from variables.lists import data_types, letters
 

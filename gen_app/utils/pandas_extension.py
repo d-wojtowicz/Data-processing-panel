@@ -1,8 +1,10 @@
+import sys, os
+import pandas as pd
+
 from typing import Union
 from types import GeneratorType
 
-import pandas as pd
-
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from variables.lists import numeric_types, conditions_list, dtypes_list
 from variables.enumerators import *
 
