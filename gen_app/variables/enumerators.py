@@ -23,6 +23,7 @@ class read_from(Enum):
 class reader_tester(Enum):
     SEABORN = "Seaborn"
     SKLEARN = "Sklearn"
+    GENERATED = "Generated"
     INDIVIDUAL = "Individual"
 
     @classmethod

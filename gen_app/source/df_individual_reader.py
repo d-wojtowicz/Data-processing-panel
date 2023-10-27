@@ -9,8 +9,8 @@ from variables.enumerators import *
 from variables.lists import *
 
 class DataIndividualReader(object):
-    def __init__(self, file_path: str, location_method: Enum = read_from.TOP, by_gen: bool = True):
-        self.dataset: Union[pd.DataFrame, GeneratorType] = None
+    def __init__(self, file_path: str, location_method: Enum = read_from.TOP, by_gen: bool = True, dataset_input: Union[pd.DataFrame, GeneratorType] = None):
+        self.dataset: Union[pd.DataFrame, GeneratorType] = dataset_input
 
         self.file_path: str = file_path
 
@@ -35,6 +35,11 @@ class DataIndividualReader(object):
                     self.dataset = self.read_from_json_by_gen()
                 else:
                     self.dataset = self.read_from_json()
+            case "generated":
+                if self.by_gen: 
+                    self.dataset = self.read_from_generated_by_gen()
+                else:
+                    self.dataset = self.read_from_generated()
             case _:
                 raise Exception("The program does not support to import files from selected format.")
 
@@ -58,3 +63,19 @@ class DataIndividualReader(object):
 
     def read_from_json(self) -> pd.DataFrame:
         return pd.read_json(self.file_path)
+
+    def read_from_generated_by_gen(self) -> GeneratorType:
+        for partial_result_df in self.dataframe_chunk_generator(self.ADJUSTABLE_CHUNK_SIZE):
+            yield partial_result_df
+
+    def read_from_generated(self) -> pd.DataFrame:
+        return pd.DataFrame(self.dataset)
+    
+    def dataframe_chunk_generator(self, chunk_size: int) -> pd.DataFrame:
+        num_of_chunks = len(self.dataset) // chunk_size + 1
+        for chunk_id in range(num_of_chunks):
+            from_id = chunk_id * chunk_size
+            to_id = (chunk_id + 1) * chunk_size
+            chunk_value = self.dataset[from_id:to_id]
+            if not chunk_value.empty:
+                yield chunk_value

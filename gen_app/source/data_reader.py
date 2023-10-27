@@ -12,9 +12,9 @@ from source.df_sklearn_reader import DataSklearnReader
 from source.df_individual_reader import DataIndividualReader
  
 class DataReader(object):
-    def __init__(self, df_name: str, df_source: str, location_method: Enum = read_from.TOP, structure_method: Enum = read_by.NORMAL, limit: int = 1000, by_gen: bool = True):
+    def __init__(self, df_name: str, df_source: str, location_method: Enum = read_from.TOP, structure_method: Enum = read_by.NORMAL, limit: int = 1000, by_gen: bool = True, dataset_for_generated: Union[pd.DataFrame, GeneratorType] = None):
         """ 'by_gen' parameter concerns only to the 'row_reader' & 'tuple_reader' & 'chunk_reader"""
-        self.dataset: Union[pd.DataFrame, GeneratorType] = None
+        self.dataset: Union[pd.DataFrame, GeneratorType] = dataset_for_generated
 
         self.df_name: str = df_name.lower()
         self.df_source: str = df_source.lower()
@@ -39,8 +39,8 @@ class DataReader(object):
                     DataReaderMethod.read_df_from_sklearn()
                     self.dataset = DataReaderMethod.dataset
                     result = DataReaderMethod.dataset
-            elif self.df_source.endswith((".txt", ".csv", ".xlsx", ".json")):
-                DataReaderMethod = DataIndividualReader(self.df_source, self.location_method, by_gen=self.by_gen) # Full data are readed
+            elif self.df_source.endswith((".txt", ".csv", ".xlsx", ".json")) or self.df_source in ["generated"]:
+                DataReaderMethod = DataIndividualReader(self.df_source, self.location_method, by_gen=self.by_gen, dataset_input=self.dataset) # Full data are readed
                 DataReaderMethod.read_df_from_input()
                 self.dataset = DataReaderMethod.dataset
                 result = DataReaderMethod.dataset
