@@ -55,10 +55,11 @@ import pandas as pd
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from gen_app.source.data_reader import DataReader
 from gen_app.utils.data_generator_by_gen import DataGenerator
+from gen_app.utils.data_exporter import DataExporter
 from gen_app.utils.pandas_extension import DataManager, gen_to_df, df_to_gen
 
 from gen_app.variables.enumerators import read_by, read_from, reader_tester
-from gen_app.variables.lists import seaborn_libraries, sklearn_libraries, comparision_marks
+from gen_app.variables.lists import seaborn_libraries, sklearn_libraries, comparision_marks, exports
 
 generated_dataset = None
 individual_dataset_path = None
@@ -216,14 +217,33 @@ def submit_filter(dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_nam
 
         return {
             filter_result: filtered_dataset, 
-            source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=True)
+            source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=True),
+            export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=True),
+            export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=True),
+            submit_export_btn: gr.Button("Export Filtered Dataset", visible=True)
         }
     except Exception as e:
         return {error_box: gr.Textbox(value=str(e), visible=True)}
-    
-css = """body {background-color: rgb(11,15,25)}"""
+
+def submit_export(filtered_dataset: pd.DataFrame, format: str):
+    dataExporter = DataExporter(filtered_dataset, "Exported")
+    match format:
+        case "TXT":
+            dataExporter.export_to_txt()
+        case "JSON":
+            dataExporter.export_to_json()
+        case "CSV":
+            dataExporter.export_to_csv()
+        case "XLSX":
+            dataExporter.export_to_xlsx()
+        case "PDF":
+            dataExporter.export_to_pdf()
+        case _:
+            raise Exception("You selected a wrong format of the export file!")
+
+css = """body {background-color: rgb(111,15,25)}"""
 if __name__ == "__main__":
-    with gr.Blocks(css=css) as my_app:
+    with gr.Blocks(title="Dataset Converter") as my_app:
         error_box = gr.Textbox(label="Error", visible=False)
 
         with gr.Tabs():
@@ -276,6 +296,10 @@ if __name__ == "__main__":
 
                         filter_result = gr.DataFrame()
                 submit_filter_ds_btn = gr.Button("Get Filtered Dataset")
+
+                export_info = gr.Text(visible=False)
+                export_format = gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=False)
+                submit_export_btn = gr.Button("Export Filtered Dataset", visible=False)
                 
         ### On-click 'Dataset' section ###
         submit_source_btn.click(
@@ -309,10 +333,15 @@ if __name__ == "__main__":
             [error_box, filter_fields]
         )
 
+        submit_export_btn.click(
+            submit_export,
+            [filter_result, export_format]
+        )
+
         submit_filter_ds_btn.click(
             submit_filter,
             [result_box, filter_result, filter_fields, filter_dtype, filter_value, numeric_filter, source_selector],
-            [error_box, filter_result, source_selector]
+            [error_box, filter_result, source_selector, export_info, export_format, submit_export_btn]
         )
 
     my_app.launch()

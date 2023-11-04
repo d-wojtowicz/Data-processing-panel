@@ -4,6 +4,7 @@ from reportlab.lib.pagesizes import A4
 
 # Main app GUI
 comparision_marks = ['less than', 'less than or equal', 'equal', 'greater than or equal', 'greater than']
+exports = ["TXT", "JSON", "CSV", "XLSX", "PDF"]
 
 # Data generator
 data_types = ["number", "text", "char"]
