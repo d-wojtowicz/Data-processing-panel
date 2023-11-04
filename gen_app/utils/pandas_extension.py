@@ -52,25 +52,34 @@ class DataManager(object):
         
         if type(field_value).__name__ in numeric_types:
             VALUE_VALIDATION = True
-
+            if type(field_value).__name__ == "list":
+                for single_value in field_value:
+                    if type(single_value).__name__ not in numeric_types:
+                        VALUE_VALIDATION = False
+                    
         if self.dataset[field_title].dtypes in numeric_types:
             TYPE_VALIDATION = True
 
         if condition in conditions_list:
             CONDITION_VALIDATION = True
-            
+        
+        MAX_VALUE = max(field_value)
+        MIN_VALUE = min(field_value)
+        
         if NAME_VALIDATION and VALUE_VALIDATION and TYPE_VALIDATION and CONDITION_VALIDATION:
             match condition:
-                case "less" | "<":
-                    result_df = self.dataset.loc[self.dataset[field_title] < field_value]
+                case "less than" | "<":
+                    result_df = self.dataset.loc[self.dataset[field_title] < MAX_VALUE]
                 case "less than or equal" | "<=":
-                    result_df = self.dataset.loc[self.dataset[field_title] <= field_value]
+                    result_df = self.dataset.loc[self.dataset[field_title] <= MAX_VALUE]
                 case "equal" | "==":
-                    result_df = self.dataset.loc[self.dataset[field_title] == field_value]
-                case "greater" | ">":
-                    result_df = self.dataset.loc[self.dataset[field_title] > field_value]
+                    for value in list(set(field_value)):
+                        tmp_df = self.dataset.loc[self.dataset[field_title] == value]
+                        result_df = pd.concat([result_df, tmp_df])
+                case "greater than" | ">":
+                    result_df = self.dataset.loc[self.dataset[field_title] > MIN_VALUE]
                 case "greater than or equal" | ">=":
-                    result_df = self.dataset.loc[self.dataset[field_title] >= field_value]
+                    result_df = self.dataset.loc[self.dataset[field_title] >= MIN_VALUE]
                 case _:
                     raise Exception("You specified a wrong condition!")
         else:
