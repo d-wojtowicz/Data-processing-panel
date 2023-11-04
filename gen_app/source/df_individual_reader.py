@@ -9,12 +9,11 @@ from variables.enumerators import *
 from variables.lists import *
 
 class DataIndividualReader(object):
-    def __init__(self, file_path: str, location_method: Enum = read_from.TOP, by_gen: bool = True, dataset_input: Union[pd.DataFrame, GeneratorType] = None):
+    def __init__(self, file_path: str, by_gen: bool = True, dataset_input: Union[pd.DataFrame, GeneratorType] = None):
         self.dataset: Union[pd.DataFrame, GeneratorType] = dataset_input
 
         self.file_path: str = file_path
 
-        self.location_method: Enum = location_method
         self.by_gen: bool = by_gen
         self.ADJUSTABLE_CHUNK_SIZE = 1000
 
@@ -26,10 +25,7 @@ class DataIndividualReader(object):
                 else:
                     self.dataset = self.read_from_csv()
             case ext if ext.endswith(".xlsx"):
-                if self.by_gen:
-                    self.dataset = self.read_from_xlsx_by_gen()
-                else:
-                    self.dataset = self.read_from_xlsx()
+                self.dataset = self.read_from_xlsx()
             case ext if ext.endswith(".json"):
                 if self.by_gen:
                     self.dataset = self.read_from_json_by_gen()
@@ -50,15 +46,11 @@ class DataIndividualReader(object):
     def read_from_csv(self) -> pd.DataFrame:
         return pd.read_csv(self.file_path)
 
-    def read_from_xlsx_by_gen(self) -> GeneratorType:
-        for chunk in pd.read_excel(self.file_path, chunksize=self.ADJUSTABLE_CHUNK_SIZE):
-            yield chunk
-
     def read_from_xlsx(self) -> pd.DataFrame:
         return pd.read_excel(self.file_path)
 
     def read_from_json_by_gen(self) -> GeneratorType:
-        for chunk in pd.read_json(self.file_path, chunksize=self.ADJUSTABLE_CHUNK_SIZE):
+        for chunk in pd.read_json(self.file_path, lines=True, chunksize=self.ADJUSTABLE_CHUNK_SIZE):
             yield chunk
 
     def read_from_json(self) -> pd.DataFrame:

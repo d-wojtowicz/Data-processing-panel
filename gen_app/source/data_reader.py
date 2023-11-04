@@ -39,8 +39,8 @@ class DataReader(object):
                     DataReaderMethod.read_df_from_sklearn()
                     self.dataset = DataReaderMethod.dataset
                     result = DataReaderMethod.dataset
-            elif self.df_source.endswith((".txt", ".csv", ".xlsx", ".json")) or self.df_source in ["generated"]:
-                DataReaderMethod = DataIndividualReader(self.df_source, self.location_method, by_gen=self.by_gen, dataset_input=self.dataset) # Full data are readed
+            elif self.df_source.endswith((".txt", ".csv", ".xlsx", ".json")) or self.df_source in ["generated", "individual"]:
+                DataReaderMethod = DataIndividualReader(self.df_source, by_gen=self.by_gen, dataset_input=self.dataset) # Full data are readed
                 DataReaderMethod.read_df_from_input()
                 self.dataset = DataReaderMethod.dataset
                 result = DataReaderMethod.dataset
