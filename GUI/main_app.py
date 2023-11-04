@@ -43,6 +43,7 @@ CHUNKS_GEN
 #TODO: Facade, response boilerplate & GUI & backend separately
 
 #BUG: Random, w momencie jak limit > ilosc rekordow to wyswietla 1
+#TODO: Add possibility of basing on the actual filtered dataset in the filtering panel (Not one the dataset from the fetching panel)
 
 import sys, os
 
@@ -195,10 +196,13 @@ def submit_fetch(dataset: pd.DataFrame):
     except Exception as e:
         return {error_box: gr.Textbox(value=str(e), visible=True)}
 
-def submit_filter(dataset: pd.DataFrame, col_name: str, col_dtype: str, filter_value: Union[int, str, float], numeric_comparator: str):
+def submit_filter(dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_name: str, col_dtype: str, filter_value: Union[int, str, float], numeric_comparator: str, operate_on_filtered: bool=False):
     try:
         global dataManager
-        dataManager = DataManager(dataset)
+        if operate_on_filtered:
+            dataManager = DataManager(filtered_dataset)
+        else:
+            dataManager = DataManager(dataset)
         
         filtered_dataset = pd.DataFrame()
         if col_dtype == "Str":
@@ -210,7 +214,10 @@ def submit_filter(dataset: pd.DataFrame, col_name: str, col_dtype: str, filter_v
             filter_value = [float(elem) for elem in filter_value.split(",")]
             filtered_dataset = dataManager.get_df_by_numeric(col_name, filter_value, numeric_comparator)
 
-        return {filter_result: filtered_dataset}
+        return {
+            filter_result: filtered_dataset, 
+            source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=True)
+        }
     except Exception as e:
         return {error_box: gr.Textbox(value=str(e), visible=True)}
     
@@ -265,6 +272,7 @@ if __name__ == "__main__":
 
                         filter_value = gr.Textbox(label="Enter value (e.g. 'a'; 'a,b,c'; '2,5,10'; '3.14,1.618')")
                         numeric_filter = gr.Radio(label="Select comparision mark (Only for numeric filter!)", value=comparision_marks[2], choices=comparision_marks)
+                        source_selector = gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=False)
 
                         filter_result = gr.DataFrame()
                 submit_filter_ds_btn = gr.Button("Get Filtered Dataset")
@@ -303,8 +311,8 @@ if __name__ == "__main__":
 
         submit_filter_ds_btn.click(
             submit_filter,
-            [result_box, filter_fields, filter_dtype, filter_value, numeric_filter],
-            [error_box, filter_result]
+            [result_box, filter_result, filter_fields, filter_dtype, filter_value, numeric_filter, source_selector],
+            [error_box, filter_result, source_selector]
         )
 
     my_app.launch()
