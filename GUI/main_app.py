@@ -45,6 +45,7 @@ CHUNKS_GEN
 #BUG: Random, w momencie jak limit > ilosc rekordow to wyswietla 1
 #TODO: Add possibility of basing on the actual filtered dataset in the filtering panel (Not one the dataset from the fetching panel)
 
+from enum import Enum
 import sys, os
 
 from types import GeneratorType
@@ -88,7 +89,13 @@ def enum_handler(location_method: str, structure_method: str) -> (enumerate, enu
             structure_method = read_by.CHUNKS
         case _:
             """"""
-    return location_method, structure_method
+    
+    if location_method != "" and structure_method != "":
+        return location_method, structure_method
+    elif location_method == "" and structure_method != "":
+        return structure_method
+    else:
+        return location_method
 
 def value_handler(source_name: str, df_name: str, location_method: str, structure_method: str, row_count: int):
     location_method, structure_method = enum_handler(location_method, structure_method)
@@ -215,17 +222,46 @@ def submit_filter(dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_nam
             filter_value = [float(elem) for elem in filter_value.split(",")]
             filtered_dataset = dataManager.get_df_by_numeric(col_name, filter_value, numeric_comparator)
 
+        if operate_on_filtered:
+            return {
+                filter_result: filtered_dataset, 
+                source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=True),
+
+                extractor_position: gr.Radio(label="Extract samples from: ", value=read_from.list()[0], choices=read_from.list(), visible=True),
+                extractor_quantity: gr.Number(label="Enter number of rows: ", value=1, minimum=1, maximum=len(filtered_dataset), visible=True),
+                submit_sampling_btn: gr.Button("Extract slice of samples", visible=True),
+
+                export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=True),
+                export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=True),
+                submit_export_btn: gr.Button("Export Filtered Dataset", visible=True)
+            }
+        else:
+            return {
+                filter_result: filtered_dataset, 
+                source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=True),
+
+                export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=True),
+                export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=True),
+                submit_export_btn: gr.Button("Export Filtered Dataset", visible=True)
+            }
+            
+    except Exception as e:
+        return {error_box: gr.Textbox(value=str(e), visible=True)}
+
+def submit_sample(dataset: pd.DataFrame, read_from: Enum, number_of_records: int) -> pd.DataFrame:
+    try:
+        global dataManager
+        dataManager = DataManager(dataset)
+        read_from = enum_handler(location_method=read_from, structure_method="")
+        filtered_dataset = dataManager.get_df_by_limit(int(number_of_records), read_from)
         return {
-            filter_result: filtered_dataset, 
-            source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=True),
-            export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=True),
-            export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=True),
-            submit_export_btn: gr.Button("Export Filtered Dataset", visible=True)
+            filter_result: filtered_dataset,
+            extractor_quantity: gr.Number(label="Enter number of rows: ", value=1, minimum=1, maximum=len(filtered_dataset), visible=True)
         }
     except Exception as e:
         return {error_box: gr.Textbox(value=str(e), visible=True)}
 
-def submit_export(filtered_dataset: pd.DataFrame, format: str):
+def submit_export(filtered_dataset: pd.DataFrame, format: str) -> None:
     dataExporter = DataExporter(filtered_dataset, "Exported")
     match format:
         case "TXT":
@@ -282,9 +318,11 @@ if __name__ == "__main__":
                             result_box = gr.DataFrame()
 
             with gr.TabItem("Details & Filtering"):
+                # Filtering Panel
                 submit_fetch_fields_btn = gr.Button("Fetch Dataset Fields")
                 with gr.Row():
                     with gr.Column():
+                        
                         filter_info = gr.Label(label="Info", value="Please choose Fetch Dataset Fields button to fill the missing values in the field filterings dropdown.")
                         
                         filter_fields = gr.Dropdown(label="Select Field", choices=[])
@@ -295,8 +333,16 @@ if __name__ == "__main__":
                         source_selector = gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=False)
 
                         filter_result = gr.DataFrame()
+                
+                # Sampling Panel
+                extractor_position = gr.Radio(label="Extract samples from: ", value=read_from.list()[0], choices=read_from.list(), visible=False)
+                extractor_quantity = gr.Number(label="Enter number of rows: ", value=1, minimum=1, maximum=len(filter_result.value), visible=False)
+                submit_sampling_btn = gr.Button("Extract slice of samples", visible=False)
+
+                # APPLY SETTINGS
                 submit_filter_ds_btn = gr.Button("Get Filtered Dataset")
 
+                # Exporting Panel
                 export_info = gr.Text(visible=False)
                 export_format = gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=False)
                 submit_export_btn = gr.Button("Export Filtered Dataset", visible=False)
@@ -333,15 +379,23 @@ if __name__ == "__main__":
             [error_box, filter_fields]
         )
 
-        submit_export_btn.click(
-            submit_export,
-            [filter_result, export_format]
+        submit_sampling_btn.click(
+            submit_sample,
+            [filter_result, extractor_position, extractor_quantity],
+            [error_box, filter_result, extractor_quantity]
         )
 
         submit_filter_ds_btn.click(
             submit_filter,
             [result_box, filter_result, filter_fields, filter_dtype, filter_value, numeric_filter, source_selector],
-            [error_box, filter_result, source_selector, export_info, export_format, submit_export_btn]
+            [error_box, filter_result, source_selector, 
+             extractor_position, extractor_quantity, submit_sampling_btn,
+             export_info, export_format, submit_export_btn]
+        )
+
+        submit_export_btn.click(
+            submit_export,
+            [filter_result, export_format]
         )
 
     my_app.launch()
