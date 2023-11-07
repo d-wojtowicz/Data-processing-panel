@@ -28,7 +28,6 @@ class DataManager(object):
 
     def get_df_by_limit(self, limit: int, location_method: Enum = read_from.TOP) -> pd.DataFrame:
         result_df = pd.DataFrame()
-        print(location_method, location_method.value, type(location_method), read_from.TOP.value, read_from.BOTTOM.value, read_from.RANDOM.value)
         match location_method.value:
             case read_from.TOP.value:
                 result_df = self.dataset.head(limit)     
