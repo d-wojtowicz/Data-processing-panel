@@ -18,12 +18,10 @@ CHUNKS_GEN
 
 
 #TODO: Fix tuples column names & chunk reader
-#TODO: Add new filter ways
 #TODO: Main_performance apply OOP changes
 
 # 1.
 #TODO: Check all methods of data reading for bug hunting
-#TODO: DataFrame splitting by number of rows per page
 
 # 2.
 #TODO: Update result_box by three buttons displaying: Table, Statistical Analysis, Log
@@ -247,7 +245,10 @@ def turn_configuration(source_name: str):
                 individual_dataset_col: gr.Column(visible=False),
                 output_result_col: gr.Column(visible=False),
                 gen_info_text: gr.Text(visible=False),
-                result_box: gr.DataFrame(None)
+                result_box: gr.DataFrame(None),
+                export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=False),
+                export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=False),
+                submit_export_btn: gr.Button("Export Filtered Dataset", visible=False)
             }
         case "Sklearn":
             return {
@@ -258,7 +259,10 @@ def turn_configuration(source_name: str):
                 individual_dataset_col: gr.Column(visible=False),
                 output_result_col: gr.Column(visible=False),
                 gen_info_text: gr.Text(visible=False),
-                result_box: gr.DataFrame(None)
+                result_box: gr.DataFrame(None),
+                export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=False),
+                export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=False),
+                submit_export_btn: gr.Button("Export Filtered Dataset", visible=False)
             }
         case "Generated":
             return {
@@ -269,7 +273,10 @@ def turn_configuration(source_name: str):
                 individual_dataset_col: gr.Column(visible=False),
                 output_result_col: gr.Column(visible=False),
                 gen_info_text: gr.Text(visible=False),
-                result_box: gr.DataFrame(None)
+                result_box: gr.DataFrame(None),
+                export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=False),
+                export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=False),
+                submit_export_btn: gr.Button("Export Filtered Dataset", visible=False)
             }
         case "Individual":
             return {
@@ -280,7 +287,10 @@ def turn_configuration(source_name: str):
                 individual_dataset_col: gr.Column(visible=True),
                 output_result_col: gr.Column(visible=False),
                 gen_info_text: gr.Text(visible=False),
-                result_box: gr.DataFrame(None)
+                result_box: gr.DataFrame(None),
+                export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=False),
+                export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=False),
+                submit_export_btn: gr.Button("Export Filtered Dataset", visible=False)
             }
         case _:
             return {error_box: gr.Textbox(value="Wrong data source selected!", visible=True)}
@@ -428,7 +438,7 @@ if __name__ == "__main__":
         source_box.change(
             turn_configuration,
             [source_box],
-            [error_box, dataset_box, output_conf_col, filter_fields, generated_dataset_col, individual_dataset_col, output_result_col, gen_info_text, result_box]
+            [error_box, dataset_box, output_conf_col, filter_fields, generated_dataset_col, individual_dataset_col, output_result_col, gen_info_text, result_box, export_info, export_format, submit_export_btn]
         )
         
         result_box.change(
