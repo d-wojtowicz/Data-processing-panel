@@ -42,6 +42,14 @@ CHUNKS_GEN
 
 #BUG: Random, w momencie jak limit > ilosc rekordow to wyswietla 1
 
+
+# NOTATKI:
+""" GENERATED:
+Jest generowany całkowicie w oparciu o autorską funkcję generującą z klasy DataGenerator w funkcji submit_gen,
+Za pomocą value_handler jest zapisany do zmiennej w pamięci jako pd.DataFrame(gen_to_df(generated_dataset))
+
+
+"""
 from enum import Enum
 import sys, os
 
@@ -102,14 +110,16 @@ def value_handler(source_name: str, df_name: str, location_method: str = read_fr
     if source_name == "Generated":
         by_gen = False
         global generated_dataset
-        dataset = pd.DataFrame(gen_to_df(generated_dataset))
+        dataset = generated_dataset
     elif source_name == "Individual":
         global individual_dataset_path
         source_name = individual_dataset_path
         df_name = "Individual"
     
+    print("A", dataset)
     dataReader = DataReader(df_name, source_name, location_method, structure_method, row_count, by_gen=by_gen, dataset_for_generated=dataset)
     result_df = dataReader.read_data()
+    print("B", result_df)
 
     # Odpowiednie przetwarzanie
     if df_name == "Individual":
@@ -156,12 +166,6 @@ def submit_conf(source_name: str, df_name: str, location_method: str, structure_
         output_result_col: gr.Column(visible=True),
         result_box: gr.DataFrame(label="Result: ", value=df, interactive=1)
     }
-
-def submit_fetch(dataset: pd.DataFrame):
-    try:
-        return {filter_fields: gr.Dropdown(label="Select Field", value=dataset.columns[0], choices=dataset.columns.tolist())}
-    except Exception as e:
-        return {error_box: gr.Textbox(value=str(e), visible=True)}
 
 def submit_filter(dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_name: str, col_dtype: str, filter_value: Union[int, str, float], numeric_comparator: str, operate_on_filtered: bool=False):
     try:
@@ -238,6 +242,7 @@ def turn_configuration(source_name: str):
             return {
                 dataset_box: gr.Radio(label="Enter the dataset name: ", value=seaborn_libraries[0], choices=seaborn_libraries, visible=True),
                 output_conf_col: gr.Column(visible=True),
+                filter_fields: gr.Dropdown(label="Select Field", choices=[]),
                 generated_dataset_col: gr.Column(visible=False),
                 individual_dataset_col: gr.Column(visible=False),
                 output_result_col: gr.Column(visible=False),
@@ -248,6 +253,7 @@ def turn_configuration(source_name: str):
             return {
                 dataset_box: gr.Radio(label="Enter the dataset name: ", value=sklearn_libraries[0], choices=sklearn_libraries, visible=True),
                 output_conf_col: gr.Column(visible=True),
+                filter_fields: gr.Dropdown(label="Select Field", choices=[]),
                 generated_dataset_col: gr.Column(visible=False),
                 individual_dataset_col: gr.Column(visible=False),
                 output_result_col: gr.Column(visible=False),
@@ -258,6 +264,7 @@ def turn_configuration(source_name: str):
             return {
                 dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
                 output_conf_col: gr.Column(visible=False),
+                filter_fields: gr.Dropdown(label="Select Field", choices=[]),
                 generated_dataset_col: gr.Column(visible=True),
                 individual_dataset_col: gr.Column(visible=False),
                 output_result_col: gr.Column(visible=False),
@@ -268,6 +275,7 @@ def turn_configuration(source_name: str):
             return {
                 dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
                 output_conf_col: gr.Column(visible=False),
+                filter_fields: gr.Dropdown(label="Select Field", choices=[]),
                 generated_dataset_col: gr.Column(visible=False),
                 individual_dataset_col: gr.Column(visible=True),
                 output_result_col: gr.Column(visible=False),
@@ -279,9 +287,17 @@ def turn_configuration(source_name: str):
 
 def turn_details(dataset: pd.DataFrame):
     if dataset.columns.tolist() == [1,2,3] and dataset.shape[0] == 1: # gr.DataFrame is empty with [1,2,3] columns and one null record with index 0
-        return {status_before: gr.Column(visible=True), status_after: gr.Column(visible=False)}
+        return {
+            status_before: gr.Column(visible=True),
+            status_after: gr.Column(visible=False), 
+            filter_fields: gr.Dropdown(label="Select Field", choices=[])
+        }
     else:
-        return {status_before: gr.Column(visible=False), status_after: gr.Column(visible=True)}
+        return {
+            status_before: gr.Column(visible=False),
+            status_after: gr.Column(visible=True),
+            filter_fields: gr.Dropdown(label="Select Field", value=dataset.columns[0], choices=dataset.columns.tolist())
+        }
 
 def turn_comparision(dtype: str):
     if dtype == "Str":
@@ -348,10 +364,6 @@ if __name__ == "__main__":
                     with gr.Column(visible=True) as status_before:
                         message_info = gr.Label(label="Info", value="In order to operate on the selected data set, it must first be loaded in the previous tab.")
                     with gr.Column(visible=False) as status_after:
-                        submit_fetch_fields_btn = gr.Button("Fetch Dataset Fields")
-
-                        filter_info = gr.Label(label="Info", value="Please choose Fetch Dataset Fields button to fill the missing values in the field filterings dropdown.")
-                        
                         filter_fields = gr.Dropdown(label="Select Field", choices=[])
                         filter_dtype = gr.Radio(label="Filtering by", choices=["Str", "Int", "Float"], value="Str")
 
@@ -394,12 +406,6 @@ if __name__ == "__main__":
         )
 
         ### On-click 'Details & Filtering' section ###
-        submit_fetch_fields_btn.click(
-            submit_fetch,
-            [result_box],
-            [error_box, filter_fields]
-        )
-
         submit_sampling_btn.click(
             submit_sample,
             [filter_result, extractor_position, extractor_quantity],
@@ -422,13 +428,13 @@ if __name__ == "__main__":
         source_box.change(
             turn_configuration,
             [source_box],
-            [error_box, dataset_box, output_conf_col, generated_dataset_col, individual_dataset_col, output_result_col, gen_info_text, result_box]
+            [error_box, dataset_box, output_conf_col, filter_fields, generated_dataset_col, individual_dataset_col, output_result_col, gen_info_text, result_box]
         )
         
         result_box.change(
             turn_details,
             [result_box],
-            [status_before, status_after]
+            [error_box, status_before, status_after, filter_fields]
         )
 
         ### On-change 'Details & Filtering' section ###

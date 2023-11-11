@@ -5,6 +5,7 @@ from typing import Union
 from types import GeneratorType
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.pandas_extension import gen_to_df
 from variables.enumerators import *
 from variables.lists import *
 
@@ -61,7 +62,7 @@ class DataIndividualReader(object):
             yield partial_result_df
 
     def read_from_generated(self) -> pd.DataFrame:
-        return pd.DataFrame(self.dataset)
+        return pd.DataFrame(gen_to_df(self.dataset))
     
     def dataframe_chunk_generator(self, chunk_size: int) -> pd.DataFrame:
         num_of_chunks = len(self.dataset) // chunk_size + 1
