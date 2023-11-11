@@ -1,53 +1,19 @@
-# 0.
-"""
-                SEABORN     SKLEARN     GENERATED       INDIVIDUAL
-NORMAL          OK
-COLUMN          OK
-ROWS            
-ROWS_GEN
-TUPLES
-TUPLES_GEN
-CHUNKS
-CHUNKS_GEN
-
-
-
-"""
-
-
-
-
 #TODO: Fix tuples column names & chunk reader
 #TODO: Main_performance apply OOP changes
+#BUG: Random, w momencie jak limit > ilosc rekordow to wyswietla 1
+#TODO: Complete overall refactor (Backend and mostly GUI components reloading)
+#TODO: Requirements UPDATE!!!
 
-# 1.
-#TODO: Check all methods of data reading for bug hunting
-
-# 2.
+# ADDITIONAL:
+#TODO: Facade - response, boilerplate
 #TODO: Update result_box by three buttons displaying: Table, Statistical Analysis, Log
 # Table: Interactive DataFrame with checking datatypes before applying changes
 # Statistical Analysis: std, med, avg etc.
 # Log: Measurements of all steps while data processing (save to file & output it)
 
-# 3.
-#TODO: Theme CSS
-#TODO: Value_handler refactor!!!!!!!!
+# NOTES:
+# Seaborn, Sklearn & Generated are designed to show the efficiency of generators.
 
-# 4.
-#TODO: Requirements UPDATE!!!
-#TODO: Overall refactor
-#TODO: Facade, response boilerplate & GUI & backend separately
-
-#BUG: Random, w momencie jak limit > ilosc rekordow to wyswietla 1
-
-
-# NOTATKI:
-""" GENERATED:
-Jest generowany całkowicie w oparciu o autorską funkcję generującą z klasy DataGenerator w funkcji submit_gen,
-Za pomocą value_handler jest zapisany do zmiennej w pamięci jako pd.DataFrame(gen_to_df(generated_dataset))
-
-
-"""
 from enum import Enum
 import sys, os
 
@@ -63,7 +29,7 @@ from gen_app.utils.data_exporter import DataExporter
 from gen_app.utils.pandas_extension import DataManager, gen_to_df, df_to_gen
 
 from gen_app.variables.enumerators import read_by, read_from, reader_tester
-from gen_app.variables.lists import seaborn_libraries, sklearn_libraries, comparision_marks, exports
+from gen_app.variables.lists import seaborn_libraries, sklearn_libraries, comparision_marks, exports, read_with_gen
 
 generated_dataset = None
 individual_dataset_path = None
@@ -100,13 +66,12 @@ def enum_handler(location_method: str, structure_method: str) -> (enumerate, enu
     else:
         return location_method
 
-def value_handler(source_name: str, df_name: str, location_method: str = read_from.TOP, structure_method: str = read_by.NORMAL, row_count: int = 1000):
+def value_handler(source_name: str, df_name: str, read_with_gen: bool = True, location_method: str = read_from.TOP, structure_method: str = read_by.NORMAL, row_count: int = 1000):
     location_method, structure_method = enum_handler(location_method, structure_method)
 
     dataset = None
-    by_gen = True
     if source_name == "Generated":
-        by_gen = False
+        read_with_gen = False
         global generated_dataset
         dataset = generated_dataset
     elif source_name == "Individual":
@@ -114,8 +79,8 @@ def value_handler(source_name: str, df_name: str, location_method: str = read_fr
         source_name = individual_dataset_path
         df_name = "Individual"
     
-    print("A", dataset)
-    dataReader = DataReader(df_name, source_name, location_method, structure_method, row_count, by_gen=by_gen, dataset_for_generated=dataset)
+    print("A", df_name, source_name, location_method, structure_method, row_count, read_with_gen)
+    dataReader = DataReader(df_name, source_name, location_method, structure_method, row_count, by_gen=read_with_gen, dataset_for_generated=dataset)
     result_df = dataReader.read_data()
     print("B", result_df)
 
@@ -149,17 +114,29 @@ def submit_file(file_reader):
     if file_reader is not None:
         global individual_dataset_path
         individual_dataset_path = file_reader.name
-        return {
-            dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
-            output_conf_col: gr.Column(visible=True),
-            generated_dataset_col: gr.Column(visible=False),
-            output_result_col: gr.Column(visible=False),
-        }
+        if individual_dataset_path.endswith((".txt", ".csv", ".json")):
+            return {
+                dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
+                output_conf_col: gr.Column(visible=True),
+                generated_dataset_col: gr.Column(visible=False),
+                output_result_col: gr.Column(visible=False),
+                read_method_box: gr.Radio(label="Do you want to read the data with a generator?", choices=read_with_gen)
+            }
+        elif individual_dataset_path.endswith(".xlsx"):
+            return {
+                dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
+                output_conf_col: gr.Column(visible=True),
+                generated_dataset_col: gr.Column(visible=False),
+                output_result_col: gr.Column(visible=False),
+                read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=False, choices=[False])
+            }
+        else:
+            return {error_box: gr.Textbox(value="Acceptable file formats are only .txt, .csv, .json and .xlsx!", visible=True)}
     else:
         return {error_box: gr.Textbox(value="First you have to select the file!", visible=True)}
 
-def submit_conf(source_name: str, df_name: str, location_method: str, structure_method: str, limit: str):    
-    df = value_handler(source_name, df_name, location_method, structure_method, limit)
+def submit_conf(source_name: str, df_name: str, read_with_gen: bool, location_method: str, structure_method: str, limit: str):    
+    df = value_handler(source_name, df_name, read_with_gen, location_method, structure_method, limit)
     return {
         output_result_col: gr.Column(visible=True),
         result_box: gr.DataFrame(label="Result: ", value=df, interactive=1)
@@ -240,6 +217,11 @@ def turn_configuration(source_name: str):
             return {
                 dataset_box: gr.Radio(label="Enter the dataset name: ", value=seaborn_libraries[0], choices=seaborn_libraries, visible=True),
                 output_conf_col: gr.Column(visible=True),
+                read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=None, choices=read_with_gen),
+                location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
+                structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
+                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=False),
+                submit_conf_btn: gr.Button("Submit configurations", visible=False),
                 filter_fields: gr.Dropdown(label="Select Field", choices=[]),
                 generated_dataset_col: gr.Column(visible=False),
                 individual_dataset_col: gr.Column(visible=False),
@@ -254,6 +236,11 @@ def turn_configuration(source_name: str):
             return {
                 dataset_box: gr.Radio(label="Enter the dataset name: ", value=sklearn_libraries[0], choices=sklearn_libraries, visible=True),
                 output_conf_col: gr.Column(visible=True),
+                read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=None, choices=read_with_gen),
+                location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
+                structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
+                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=False),
+                submit_conf_btn: gr.Button("Submit configurations", visible=False),
                 filter_fields: gr.Dropdown(label="Select Field", choices=[]),
                 generated_dataset_col: gr.Column(visible=False),
                 individual_dataset_col: gr.Column(visible=False),
@@ -268,6 +255,11 @@ def turn_configuration(source_name: str):
             return {
                 dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
                 output_conf_col: gr.Column(visible=False),
+                read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=None, choices=read_with_gen),
+                location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
+                structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
+                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=False),
+                submit_conf_btn: gr.Button("Submit configurations", visible=False),
                 filter_fields: gr.Dropdown(label="Select Field", choices=[]),
                 generated_dataset_col: gr.Column(visible=True),
                 individual_dataset_col: gr.Column(visible=False),
@@ -282,6 +274,11 @@ def turn_configuration(source_name: str):
             return {
                 dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
                 output_conf_col: gr.Column(visible=False),
+                read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=None, choices=read_with_gen),
+                location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
+                structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
+                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=False),
+                submit_conf_btn: gr.Button("Submit configurations", visible=False),
                 filter_fields: gr.Dropdown(label="Select Field", choices=[]),
                 generated_dataset_col: gr.Column(visible=False),
                 individual_dataset_col: gr.Column(visible=True),
@@ -294,6 +291,34 @@ def turn_configuration(source_name: str):
             }
         case _:
             return {error_box: gr.Textbox(value="Wrong data source selected!", visible=True)}
+
+def turn_preparation(source_name: str, read_with_gen: bool):
+    if read_with_gen is not None:
+        match source_name:
+            case "Seaborn" | "Sklearn":
+                if read_with_gen:
+                    return {
+                        location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=True),
+                        structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value=read_by.seaborn_sklearn_gen_list()[0], choices=read_by.seaborn_sklearn_gen_list(), visible=True),
+                        limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=True),
+                        submit_conf_btn: gr.Button("Submit configurations", visible=True)
+                    }
+                else:
+                    return {
+                        location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=True),
+                        structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value=read_by.list()[0], choices=read_by.list(), visible=True),
+                        limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=True),
+                        submit_conf_btn: gr.Button("Submit configurations", visible=True)
+                    }
+            case "Individual":
+                return {
+                    location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
+                    structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
+                    limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=False),
+                    submit_conf_btn: gr.Button("Submit configurations", visible=True)
+                }
+            case _:
+                raise Exception("Wrong source!")
 
 def turn_details(dataset: pd.DataFrame):
     if dataset.columns.tolist() == [1,2,3] and dataset.shape[0] == 1: # gr.DataFrame is empty with [1,2,3] columns and one null record with index 0
@@ -358,12 +383,13 @@ if __name__ == "__main__":
 
                         ### Last configuration section ###
                         with gr.Column(visible=False) as output_conf_col:
-                            location_method_box = gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list())
-                            structure_method_box = gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list())
-                            limit_box = gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5)
-                            submit_conf_btn = gr.Button("Submit configurations")
+                            read_method_box = gr.Radio(label="Do you want to read the data with a generator?", choices=read_with_gen)
+                            location_method_box = gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False)
+                            structure_method_box = gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False)
+                            limit_box = gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=False)
+                            submit_conf_btn = gr.Button("Submit configurations", visible=False)
 
-                    # Right Panel
+                    # Right Panel   
                     with gr.Column():
                         with gr.Column(visible=False) as output_result_col:
                             result_box = gr.DataFrame()
@@ -406,12 +432,12 @@ if __name__ == "__main__":
         submit_file_btn.click(
             submit_file,
             [file_reader],
-            [error_box, dataset_box, output_conf_col, generated_dataset_col, output_result_col]
+            [error_box, dataset_box, output_conf_col, generated_dataset_col, output_result_col, read_method_box]
         )
 
         submit_conf_btn.click(
             submit_conf,
-            [source_box, dataset_box, location_method_box, structure_method_box, limit_box],
+            [source_box, dataset_box, read_method_box, location_method_box, structure_method_box, limit_box],
             [error_box, output_result_col, result_box]
         )
 
@@ -438,9 +464,15 @@ if __name__ == "__main__":
         source_box.change(
             turn_configuration,
             [source_box],
-            [error_box, dataset_box, output_conf_col, filter_fields, generated_dataset_col, individual_dataset_col, output_result_col, gen_info_text, result_box, export_info, export_format, submit_export_btn]
+            [error_box, read_method_box, location_method_box, structure_method_box, limit_box, submit_conf_btn, dataset_box, output_conf_col, filter_fields, generated_dataset_col, individual_dataset_col, output_result_col, gen_info_text, result_box, export_info, export_format, submit_export_btn]
         )
         
+        read_method_box.change(
+            turn_preparation,
+            [source_box, read_method_box],
+            [location_method_box, structure_method_box, limit_box, submit_conf_btn]
+        )
+
         result_box.change(
             turn_details,
             [result_box],

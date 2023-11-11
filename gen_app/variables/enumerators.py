@@ -11,6 +11,10 @@ class read_by(Enum):
     def list(cls):
         return list(map(lambda c: c.value, cls))
     
+    @classmethod
+    def seaborn_sklearn_gen_list(cls):
+        return ["Rows", "Tuples", "Chunks"]
+    
 class read_from(Enum):
     TOP = "Top"
     BOTTOM = "Bottom"
