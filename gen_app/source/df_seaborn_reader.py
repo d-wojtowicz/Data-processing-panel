@@ -65,7 +65,7 @@ class DataSeabornReader(object):
                 if self.limit < len(sns.load_dataset(self.df_name)):
                     return sns.load_dataset(self.df_name).sample(self.limit) 
                 else:
-                    return sns.load_dataset(self.df_name).sample()
+                    return sns.load_dataset(self.df_name).sample(len(sns.load_dataset(self.df_name)))
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
 
@@ -83,7 +83,7 @@ class DataSeabornReader(object):
                     for col_name, data in sns.load_dataset(self.df_name).sample(self.limit).items():
                         result_df[col_name] = data
                 else:
-                    for col_name, data in sns.load_dataset(self.df_name).sample().items():
+                    for col_name, data in sns.load_dataset(self.df_name).sample(len(sns.load_dataset(self.df_name))).items():
                         result_df[col_name] = data
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
@@ -103,7 +103,7 @@ class DataSeabornReader(object):
                     for _, row in sns.load_dataset(self.df_name).sample(self.limit).iterrows():
                         yield row
                 else:
-                    for _, row in sns.load_dataset(self.df_name).sample().iterrows():
+                    for _, row in sns.load_dataset(self.df_name).sample(len(sns.load_dataset(self.df_name))).iterrows():
                         yield row
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
@@ -123,7 +123,7 @@ class DataSeabornReader(object):
                     for row_index, row in sns.load_dataset(self.df_name).sample(self.limit).iterrows():
                         result_df[row_index] = row
                 else:
-                    for row_index, row in sns.load_dataset(self.df_name).sample().iterrows():
+                    for row_index, row in sns.load_dataset(self.df_name).sample(len(sns.load_dataset(self.df_name))).iterrows():
                         result_df[row_index] = row
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
@@ -144,7 +144,7 @@ class DataSeabornReader(object):
                     for single_tuple in sns.load_dataset(self.df_name).sample(self.limit).itertuples(index=False):
                         yield dict(zip(sns.load_dataset(self.df_name).columns, single_tuple))
                 else:
-                    for single_tuple in sns.load_dataset(self.df_name).sample().itertuples(index=False):
+                    for single_tuple in sns.load_dataset(self.df_name).sample(len(sns.load_dataset(self.df_name))).itertuples(index=False):
                         yield dict(zip(sns.load_dataset(self.df_name).columns, single_tuple))
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
@@ -161,7 +161,7 @@ class DataSeabornReader(object):
                 if self.limit < len(sns.load_dataset(self.df_name)):
                     result_df = sns.load_dataset(self.df_name).sample(self.limit).itertuples(index=False)
                 else:
-                    result_df = sns.load_dataset(self.df_name).sample().itertuples(index=False)
+                    result_df = sns.load_dataset(self.df_name).sample(len(sns.load_dataset(self.df_name))).itertuples(index=False)
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
                 
@@ -182,7 +182,7 @@ class DataSeabornReader(object):
                     for partial_result_df in self.dataframe_chunk_generator(sns.load_dataset(self.df_name).sample(self.limit), self.ADJUSTABLE_CHUNK_SIZE):
                         yield partial_result_df
                 else:
-                    for partial_result_df in self.dataframe_chunk_generator(sns.load_dataset(self.df_name).sample(), self.ADJUSTABLE_CHUNK_SIZE):
+                    for partial_result_df in self.dataframe_chunk_generator(sns.load_dataset(self.df_name).sample(len(sns.load_dataset(self.df_name))), self.ADJUSTABLE_CHUNK_SIZE):
                         yield partial_result_df
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
@@ -202,7 +202,7 @@ class DataSeabornReader(object):
                     for partial_result_df in self.dataframe_chunk_generator(sns.load_dataset(self.df_name).sample(self.limit), self.ADJUSTABLE_CHUNK_SIZE):
                         result_df = pd.concat([result_df, partial_result_df], ignore_index=True)
                 else:
-                    for partial_result_df in self.dataframe_chunk_generator(sns.load_dataset(self.df_name).sample(), self.ADJUSTABLE_CHUNK_SIZE):
+                    for partial_result_df in self.dataframe_chunk_generator(sns.load_dataset(self.df_name).sample(len(sns.load_dataset(self.df_name))), self.ADJUSTABLE_CHUNK_SIZE):
                         result_df = pd.concat([result_df, partial_result_df], ignore_index=True)
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
