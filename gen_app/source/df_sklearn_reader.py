@@ -157,22 +157,18 @@ class DataSklearnReader(object):
     def tuples_reader_by_gen(self) -> GeneratorType:
         match self.location_method:
             case read_from.TOP.value:
-                yield tuple(self.sklearn_df.columns)
                 for single_tuple in self.sklearn_df.head(self.limit).itertuples(index=False):
-                    yield single_tuple
+                    yield dict(zip(self.sklearn_df.columns, single_tuple))
             case read_from.BOTTOM.value:
-                yield tuple(self.sklearn_df.columns)
                 for single_tuple in self.sklearn_df.tail(self.limit).itertuples(index=False):
-                    yield single_tuple
+                    yield dict(zip(self.sklearn_df.columns, single_tuple))
             case read_from.RANDOM.value:
                 if self.limit < len(self.sklearn_df):
-                    yield tuple(self.sklearn_df.columns)
                     for single_tuple in self.sklearn_df.sample(self.limit).itertuples(index=False):
-                        yield single_tuple
+                        yield dict(zip(self.sklearn_df.columns, single_tuple))
                 else:
-                    yield tuple(self.sklearn_df.columns)
                     for single_tuple in self.sklearn_df.sample().itertuples(index=False):
-                        yield single_tuple
+                        yield dict(zip(self.sklearn_df.columns, single_tuple))
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
         

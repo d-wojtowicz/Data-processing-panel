@@ -134,22 +134,18 @@ class DataSeabornReader(object):
     def tuples_reader_by_gen(self) -> GeneratorType:
         match self.location_method:
             case read_from.TOP.value:
-                yield tuple(sns.load_dataset(self.df_name).columns)
                 for single_tuple in sns.load_dataset(self.df_name).head(self.limit).itertuples(index=False):
-                    yield single_tuple
+                    yield dict(zip(sns.load_dataset(self.df_name).columns, single_tuple))
             case read_from.BOTTOM.value:
-                yield tuple(sns.load_dataset(self.df_name).columns)
                 for single_tuple in sns.load_dataset(self.df_name).tail(self.limit).itertuples(index=False):
-                    yield single_tuple
+                    yield dict(zip(sns.load_dataset(self.df_name).columns, single_tuple))
             case read_from.RANDOM.value:
                 if self.limit < len(sns.load_dataset(self.df_name)):
-                    yield tuple(sns.load_dataset(self.df_name).columns)
                     for single_tuple in sns.load_dataset(self.df_name).sample(self.limit).itertuples(index=False):
-                        yield single_tuple
+                        yield dict(zip(sns.load_dataset(self.df_name).columns, single_tuple))
                 else:
-                    yield tuple(sns.load_dataset(self.df_name).columns)
                     for single_tuple in sns.load_dataset(self.df_name).sample().itertuples(index=False):
-                        yield single_tuple
+                        yield dict(zip(sns.load_dataset(self.df_name).columns, single_tuple))
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
 
