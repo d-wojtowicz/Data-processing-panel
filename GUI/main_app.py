@@ -100,11 +100,14 @@ def value_handler(source_name: str, df_name: str, read_with_gen: bool = True, lo
     print("B", result_df)
 
     # Odpowiednie przetwarzanie
-    if df_name == "Individual":
+    if source_name in ["Seaborn", "Sklearn"]:
+        if structure_method == read_by.CHUNKS and read_with_gen == True:
+                result_df = gen_to_df(result_df)
+        
+    if source_name == "Individual":
         if type(result_df) == GeneratorType:
             if source_name.endswith((".txt", ".csv", ".json")):
                 result_df = gen_to_df(result_df)
-
 
     return pd.DataFrame(result_df)
 
