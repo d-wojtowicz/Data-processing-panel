@@ -1,6 +1,11 @@
-#TODO: Fix chunk reader
+#TODO: Check import functionality (Individual)
+#TODO: Include sorting out the dataframe from the filtering panel to be remembered during export
+#TODO: If it is possible, then add deleting columns in normal and filtering
+#TODO: Check export functionality
+
+# OTHER:
 #TODO: Main_performance apply OOP changes
-#TODO: Complete overall refactor (Backend and mostly GUI components reloading)
+#BUG: Invisible field appears in Individual Import on the clicked submit configuration button
 #TODO: Requirements UPDATE!!!
 
 # ADDITIONAL:
