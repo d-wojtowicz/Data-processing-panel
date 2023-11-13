@@ -165,7 +165,9 @@ class DataSeabornReader(object):
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
                 
-        return pd.DataFrame(result_df)
+        result_df = pd.DataFrame(result_df)
+        result_df.columns = sns.load_dataset(self.df_name).columns
+        return result_df
 
     def chunks_reader_by_gen(self) -> GeneratorType:
         match self.location_method:

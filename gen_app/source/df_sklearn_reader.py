@@ -187,8 +187,10 @@ class DataSklearnReader(object):
                     result_df = self.sklearn_df.sample().itertuples(index=False)
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
-                
-        return pd.DataFrame(result_df)
+        
+        result_df = pd.DataFrame(result_df)
+        result_df.columns = self.sklearn_df.columns
+        return result_df
 
     def chunks_reader_by_gen(self) -> GeneratorType:
         match self.location_method:
