@@ -1,8 +1,10 @@
+import sys, os
+import pandas as pd
+
 from typing import Union
 from types import GeneratorType
 
-import pandas as pd
-
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from variables.lists import numeric_types, conditions_list, dtypes_list
 from variables.enumerators import *
 
@@ -26,12 +28,12 @@ class DataManager(object):
 
     def get_df_by_limit(self, limit: int, location_method: Enum = read_from.TOP) -> pd.DataFrame:
         result_df = pd.DataFrame()
-        match location_method:
-            case read_from.TOP:
+        match location_method.value:
+            case read_from.TOP.value:
                 result_df = self.dataset.head(limit)     
-            case read_from.BOTTOM:
+            case read_from.BOTTOM.value:
                 result_df = self.dataset.tail(limit)
-            case read_from.RANDOM:
+            case read_from.RANDOM.value:
                 if limit < len(self.dataset):
                     result_df = self.dataset.sample(limit)
                 else:
@@ -50,25 +52,34 @@ class DataManager(object):
         
         if type(field_value).__name__ in numeric_types:
             VALUE_VALIDATION = True
-
+            if type(field_value).__name__ == "list":
+                for single_value in field_value:
+                    if type(single_value).__name__ not in numeric_types:
+                        VALUE_VALIDATION = False
+                    
         if self.dataset[field_title].dtypes in numeric_types:
             TYPE_VALIDATION = True
 
         if condition in conditions_list:
             CONDITION_VALIDATION = True
-            
+        
+        MAX_VALUE = max(field_value)
+        MIN_VALUE = min(field_value)
+        
         if NAME_VALIDATION and VALUE_VALIDATION and TYPE_VALIDATION and CONDITION_VALIDATION:
             match condition:
-                case "less" | "<":
-                    result_df = self.dataset.loc[self.dataset[field_title] < field_value]
+                case "less than" | "<":
+                    result_df = self.dataset.loc[self.dataset[field_title] < MAX_VALUE]
                 case "less than or equal" | "<=":
-                    result_df = self.dataset.loc[self.dataset[field_title] <= field_value]
+                    result_df = self.dataset.loc[self.dataset[field_title] <= MAX_VALUE]
                 case "equal" | "==":
-                    result_df = self.dataset.loc[self.dataset[field_title] == field_value]
-                case "greater" | ">":
-                    result_df = self.dataset.loc[self.dataset[field_title] > field_value]
+                    for value in list(set(field_value)):
+                        tmp_df = self.dataset.loc[self.dataset[field_title] == value]
+                        result_df = pd.concat([result_df, tmp_df])
+                case "greater than" | ">":
+                    result_df = self.dataset.loc[self.dataset[field_title] > MIN_VALUE]
                 case "greater than or equal" | ">=":
-                    result_df = self.dataset.loc[self.dataset[field_title] >= field_value]
+                    result_df = self.dataset.loc[self.dataset[field_title] >= MIN_VALUE]
                 case _:
                     raise Exception("You specified a wrong condition!")
         else:

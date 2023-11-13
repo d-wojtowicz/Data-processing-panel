@@ -1,8 +1,10 @@
+import sys, os
 from sklearn.datasets import load_iris, load_digits, load_wine, load_diabetes, load_breast_cancer
 import pandas as pd
 from typing import Union
 from types import GeneratorType
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from variables.enumerators import *
 from variables.lists import *
 
@@ -14,11 +16,11 @@ class DataSklearnReader(object):
 
         self.df_name: str = df_name
 
-        self.location_method: Enum = location_method
-        self.structure_method: Enum = structure_method
+        self.location_method: Enum = location_method.value
+        self.structure_method: Enum = structure_method.value
         self.limit: int = limit
         self.by_gen: bool = by_gen
-        self.ADJUSTABLE_CHUNK_SIZE = 1000
+        self.ADJUSTABLE_CHUNK_SIZE = ADJUSTABLE_CHUNK_SIZE
 
     # Main functions - methods to read data
     def read_df_from_sklearn(self) -> None:
@@ -26,21 +28,21 @@ class DataSklearnReader(object):
             if self.df_name in sklearn_libraries:
                 self.read_full_df_by_name()
                 match self.structure_method:
-                    case read_by.NORMAL:
+                    case read_by.NORMAL.value:
                         self.dataset = self.normal_reader()
-                    case read_by.COLUMNS:
+                    case read_by.COLUMNS.value:
                         self.dataset = self.column_reader()
-                    case read_by.ROWS:
+                    case read_by.ROWS.value:
                         if self.by_gen:
                             self.dataset = self.rows_reader_by_gen()
                         else:
                             self.dataset = self.rows_reader()
-                    case read_by.TUPLES:
+                    case read_by.TUPLES.value:
                         if self.by_gen:
                             self.dataset = self.tuples_reader_by_gen()
                         else:
                             self.dataset = self.tuples_reader()
-                    case read_by.CHUNKS:
+                    case read_by.CHUNKS.value:
                         if self.by_gen:
                             self.dataset = self.chunks_reader_by_gen()
                         else:
@@ -75,15 +77,15 @@ class DataSklearnReader(object):
         result_df = pd.DataFrame()
 
         match self.location_method:
-            case read_from.TOP:
+            case read_from.TOP.value:
                 result_df = self.sklearn_df.head(self.limit)      
-            case read_from.BOTTOM:
+            case read_from.BOTTOM.value:
                 result_df = self.sklearn_df.tail(self.limit) 
-            case read_from.RANDOM:
+            case read_from.RANDOM.value:
                 if self.limit < len(self.sklearn_df):
                     result_df = self.sklearn_df.sample(self.limit) 
                 else:
-                    result_df = self.sklearn_df.sample() 
+                    result_df = self.sklearn_df.sample(len(self.sklearn_df)) 
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
 
@@ -93,18 +95,18 @@ class DataSklearnReader(object):
         result_df = pd.DataFrame()
 
         match self.location_method:
-            case read_from.TOP:
+            case read_from.TOP.value:
                 for col_name, data in self.sklearn_df.head(self.limit).items():
                     result_df[col_name] = data
-            case read_from.BOTTOM:
+            case read_from.BOTTOM.value:
                 for col_name, data in self.sklearn_df.tail(self.limit).items():
                     result_df[col_name] = data
-            case read_from.RANDOM:
+            case read_from.RANDOM.value:
                 if self.limit < len(self.sklearn_df):
                     for col_name, data in self.sklearn_df.sample(self.limit).items():
                         result_df[col_name] = data
                 else:
-                    for col_name, data in self.sklearn_df.sample().items():
+                    for col_name, data in self.sklearn_df.sample(len(self.sklearn_df)).items():
                         result_df[col_name] = data
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
@@ -113,18 +115,18 @@ class DataSklearnReader(object):
 
     def rows_reader_by_gen(self) -> GeneratorType:
         match self.location_method:
-            case read_from.TOP:
+            case read_from.TOP.value:
                 for _, row in self.sklearn_df.head(self.limit).iterrows():
                     yield row
-            case read_from.BOTTOM:
+            case read_from.BOTTOM.value:
                 for _, row in self.sklearn_df.tail(self.limit).iterrows():
                     yield row
-            case read_from.RANDOM:
+            case read_from.RANDOM.value:
                 if self.limit < len(self.sklearn_df):
                     for _, row in self.sklearn_df.sample(self.limit).iterrows():
                         yield row
                 else:  
-                    for _, row in self.sklearn_df.sample().iterrows():
+                    for _, row in self.sklearn_df.sample(len(self.sklearn_df)).iterrows():
                         yield row
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
@@ -133,18 +135,18 @@ class DataSklearnReader(object):
         result_df = pd.DataFrame()
 
         match self.location_method:
-            case read_from.TOP:
+            case read_from.TOP.value:
                 for row_index, row in self.sklearn_df.head(self.limit).iterrows():
                     result_df[row_index] = row
-            case read_from.BOTTOM:
+            case read_from.BOTTOM.value:
                 for row_index, row in self.sklearn_df.tail(self.limit).iterrows():
                     result_df[row_index] = row
-            case read_from.RANDOM:
+            case read_from.RANDOM.value:
                 if self.limit < len(self.sklearn_df):
                     for row_index, row in self.sklearn_df.sample(self.limit).iterrows():
                         result_df[row_index] = row
                 else:
-                    for row_index, row in self.sklearn_df.sample().iterrows():
+                    for row_index, row in self.sklearn_df.sample(len(self.sklearn_df)).iterrows():
                         result_df[row_index] = row
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
@@ -154,23 +156,19 @@ class DataSklearnReader(object):
 
     def tuples_reader_by_gen(self) -> GeneratorType:
         match self.location_method:
-            case read_from.TOP:
-                yield tuple(self.sklearn_df.columns)
+            case read_from.TOP.value:
                 for single_tuple in self.sklearn_df.head(self.limit).itertuples(index=False):
-                    yield single_tuple
-            case read_from.BOTTOM:
-                yield tuple(self.sklearn_df.columns)
+                    yield dict(zip(self.sklearn_df.columns, single_tuple))
+            case read_from.BOTTOM.value:
                 for single_tuple in self.sklearn_df.tail(self.limit).itertuples(index=False):
-                    yield single_tuple
-            case read_from.RANDOM:
+                    yield dict(zip(self.sklearn_df.columns, single_tuple))
+            case read_from.RANDOM.value:
                 if self.limit < len(self.sklearn_df):
-                    yield tuple(self.sklearn_df.columns)
                     for single_tuple in self.sklearn_df.sample(self.limit).itertuples(index=False):
-                        yield single_tuple
+                        yield dict(zip(self.sklearn_df.columns, single_tuple))
                 else:
-                    yield tuple(self.sklearn_df.columns)
-                    for single_tuple in self.sklearn_df.sample().itertuples(index=False):
-                        yield single_tuple
+                    for single_tuple in self.sklearn_df.sample(len(self.sklearn_df)).itertuples(index=False):
+                        yield dict(zip(self.sklearn_df.columns, single_tuple))
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
         
@@ -178,34 +176,36 @@ class DataSklearnReader(object):
         result_df = pd.DataFrame()
 
         match self.location_method:
-            case read_from.TOP:
+            case read_from.TOP.value:
                 result_df  = self.sklearn_df.head(self.limit).itertuples(index=False)
-            case read_from.BOTTOM:
+            case read_from.BOTTOM.value:
                 result_df = self.sklearn_df.tail(self.limit).itertuples(index=False)
-            case read_from.RANDOM:
+            case read_from.RANDOM.value:
                 if self.limit < len(self.sklearn_df):
                     result_df = self.sklearn_df.sample(self.limit).itertuples(index=False)
                 else:
-                    result_df = self.sklearn_df.sample().itertuples(index=False)
+                    result_df = self.sklearn_df.sample(len(self.sklearn_df)).itertuples(index=False)
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
-                
-        return pd.DataFrame(result_df)
+        
+        result_df = pd.DataFrame(result_df)
+        result_df.columns = self.sklearn_df.columns
+        return result_df
 
     def chunks_reader_by_gen(self) -> GeneratorType:
         match self.location_method:
-            case read_from.TOP:
+            case read_from.TOP.value:
                 for partial_result_df in self.dataframe_chunk_generator(self.sklearn_df.head(self.limit), self.ADJUSTABLE_CHUNK_SIZE):
                     yield partial_result_df
-            case read_from.BOTTOM:
+            case read_from.BOTTOM.value:
                 for partial_result_df in self.dataframe_chunk_generator(self.sklearn_df.tail(self.limit), self.ADJUSTABLE_CHUNK_SIZE):
                     yield partial_result_df
-            case read_from.RANDOM:
+            case read_from.RANDOM.value:
                 if self.limit < len(self.sklearn_df):
                     for partial_result_df in self.dataframe_chunk_generator(self.sklearn_df.sample(self.limit), self.ADJUSTABLE_CHUNK_SIZE):
                         yield partial_result_df
                 else:
-                    for partial_result_df in self.dataframe_chunk_generator(self.sklearn_df.sample(), self.ADJUSTABLE_CHUNK_SIZE):
+                    for partial_result_df in self.dataframe_chunk_generator(self.sklearn_df.sample(len(self.sklearn_df)), self.ADJUSTABLE_CHUNK_SIZE):
                         yield partial_result_df
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
@@ -214,18 +214,18 @@ class DataSklearnReader(object):
         result_df = pd.DataFrame()
         
         match self.location_method:
-            case read_from.TOP:
+            case read_from.TOP.value:
                 for partial_result_df in self.dataframe_chunk_generator(self.sklearn_df.head(self.limit), self.ADJUSTABLE_CHUNK_SIZE):
                     result_df = pd.concat([result_df, partial_result_df], ignore_index=True)
-            case read_from.BOTTOM:
+            case read_from.BOTTOM.value:
                 for partial_result_df in self.dataframe_chunk_generator(self.sklearn_df.tail(self.limit), self.ADJUSTABLE_CHUNK_SIZE):
                     result_df = pd.concat([result_df, partial_result_df], ignore_index=True)
-            case read_from.RANDOM:
+            case read_from.RANDOM.value:
                 if self.limit < len(self.sklearn_df):
                     for partial_result_df in self.dataframe_chunk_generator(self.sklearn_df.sample(self.limit), self.ADJUSTABLE_CHUNK_SIZE):
                         result_df = pd.concat([result_df, partial_result_df], ignore_index=True)
                 else:
-                    for partial_result_df in self.dataframe_chunk_generator(self.sklearn_df.sample(), self.ADJUSTABLE_CHUNK_SIZE):
+                    for partial_result_df in self.dataframe_chunk_generator(self.sklearn_df.sample(len(self.sklearn_df)), self.ADJUSTABLE_CHUNK_SIZE):
                         result_df = pd.concat([result_df, partial_result_df], ignore_index=True)
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")
