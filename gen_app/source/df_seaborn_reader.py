@@ -20,7 +20,7 @@ class DataSeabornReader(object):
         self.structure_method: Enum = structure_method.value
         self.limit: int = limit
         self.by_gen: bool = by_gen
-        self.ADJUSTABLE_CHUNK_SIZE = 1000
+        self.ADJUSTABLE_CHUNK_SIZE = ADJUSTABLE_CHUNK_SIZE
 
     # Main functions - methods to read data
     def read_df_from_seaborn(self) -> None:

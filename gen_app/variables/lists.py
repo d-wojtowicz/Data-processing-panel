@@ -14,6 +14,7 @@ letters = string.ascii_lowercase
 # Data reader
 seaborn_libraries = sns.get_dataset_names()
 sklearn_libraries = ["iris", "digits", "wine", "diabetes", "breast_cancer"]
+ADJUSTABLE_CHUNK_SIZE = 250
 
 # Pandas extension
 numeric_types = ['int', 'int64', 'float', 'float64', 'list']
