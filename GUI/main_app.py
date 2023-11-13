@@ -1,6 +1,5 @@
-#TODO: Fix tuples column names & chunk reader
+#TODO: Fix chunk reader
 #TODO: Main_performance apply OOP changes
-#BUG: Random, w momencie jak limit > ilosc rekordow to wyswietla 1
 #TODO: Complete overall refactor (Backend and mostly GUI components reloading)
 #TODO: Requirements UPDATE!!!
 
@@ -11,9 +10,25 @@
 # Statistical Analysis: std, med, avg etc.
 # Log: Measurements of all steps while data processing (save to file & output it)
 
-# NOTES:
-# Seaborn, Sklearn & Generated are designed to show the efficiency of generators.
+"""
+NOTES:
+Seaborn, Sklearn & Generated are designed to show the efficiency of generators.
 
+IMPORT:
+ACTION: Using generators, we move the moment of writing data to memory from the very beginning to just before the display 
+(To show the data on the page, we need the dataframe format).
+PURPOSE: We transfer the data in the generator format until it is written before displaying.
+EFFECT: We do not move a previously saved object in memory several times (memory-saving).
+
+PROCESSING:
+The dataframe in the Dataset panel on the right is shown for visual purposes and to demonstrate operation only. 
+It causes a drop in performance by forcing data from the generators to be written to the Dataframe.
+My aim was to create an efficient and user-friendly application, not just an efficient one. 
+It would be good if the user could see what they wanted to process and where to get the data from.
+If the data were not displayed, it would be possible to keep the format of the generators, and then in the filtering panel,
+check through iterations of a loop each item generated on the fly to see if it meets the filtering conditions 
+(This would be less efficient than using the already optimised pandas library, so I decided to balance and partially implement the solution).
+"""
 from enum import Enum
 import sys, os
 

@@ -55,7 +55,7 @@ class DataIndividualReader(object):
             yield chunk
 
     def read_from_json(self) -> pd.DataFrame:
-        return pd.read_json(self.file_path)
+        return pd.read_json(self.file_path, lines=True)
 
     def read_from_generated_by_gen(self) -> GeneratorType:
         for partial_result_df in self.dataframe_chunk_generator(self.ADJUSTABLE_CHUNK_SIZE):
