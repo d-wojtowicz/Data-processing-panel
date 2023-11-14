@@ -138,23 +138,20 @@ def submit_file(file_reader):
         global individual_dataset_path
         individual_dataset_path = file_reader.name
         if individual_dataset_path.endswith((".txt", ".csv", ".json")):
-            return {
-                dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
-                output_conf_col: gr.Column(visible=True),
-                generated_dataset_col: gr.Column(visible=False),
-                output_result_col: gr.Column(visible=False),
-                read_method_box: gr.Radio(label="Do you want to read the data with a generator?", choices=read_with_gen)
-            }
+            read_method_box_choices = read_with_gen
+            read_method_box_value = None
         elif individual_dataset_path.endswith(".xlsx"):
-            return {
-                dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
-                output_conf_col: gr.Column(visible=True),
-                generated_dataset_col: gr.Column(visible=False),
-                output_result_col: gr.Column(visible=False),
-                read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=False, choices=[False])
-            }
+            read_method_box_choices = [False]
+            read_method_box_value = False
         else:
             return {error_box: gr.Textbox(value="Acceptable file formats are only .txt, .csv, .json and .xlsx!", visible=True)}
+        return {
+            dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
+            output_conf_col: gr.Column(visible=True),
+            generated_dataset_col: gr.Column(visible=False),
+            output_result_col: gr.Column(visible=False),
+            read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=read_method_box_value, choices=read_method_box_choices)
+        }
     else:
         return {error_box: gr.Textbox(value="First you have to select the file!", visible=True)}
 
@@ -183,25 +180,15 @@ def submit_filter(dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_nam
             filter_value = [float(elem) for elem in filter_value.split(",")]
             filtered_dataset = dataManager.get_df_by_numeric(col_name, filter_value, numeric_comparator)
 
-        if operate_on_filtered:
-            return {
-                filter_result: filtered_dataset, 
-                source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=True),
+        return {
+            filter_result: filtered_dataset, 
+            source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=True),
 
-                export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=True),
-                export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=True),
-                submit_export_btn: gr.Button("Export Filtered Dataset", visible=True)
-            }
-        else:
-            return {
-                filter_result: filtered_dataset, 
-                source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=True),
-
-                export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=True),
-                export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=True),
-                submit_export_btn: gr.Button("Export Filtered Dataset", visible=True)
-            }
-            
+            export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=True),
+            export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=True),
+            submit_export_btn: gr.Button("Export Filtered Dataset", visible=True)
+        }
+        
     except Exception as e:
         return {error_box: gr.Textbox(value=str(e), visible=True)}
 
@@ -235,113 +222,70 @@ def submit_export(filtered_dataset: pd.DataFrame, format: str) -> None:
             raise Exception("You selected a wrong format of the export file!")
 
 def turn_configuration(source_name: str):
+    dataset_box_choices = dataset_box_visible = None
+
     match source_name:
         case "Seaborn":
-            return {
-                dataset_box: gr.Radio(label="Enter the dataset name: ", value=seaborn_libraries[0], choices=seaborn_libraries, visible=True),
-                output_conf_col: gr.Column(visible=True),
-                read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=None, choices=read_with_gen),
-                location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
-                structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
-                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=False),
-                submit_conf_btn: gr.Button("Submit configurations", visible=False),
-                filter_fields: gr.Dropdown(label="Select Field", choices=[]),
-                generated_dataset_col: gr.Column(visible=False),
-                individual_dataset_col: gr.Column(visible=False),
-                output_result_col: gr.Column(visible=False),
-                gen_info_text: gr.Text(visible=False),
-                result_box: gr.DataFrame(None),
-                export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=False),
-                export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=False),
-                submit_export_btn: gr.Button("Export Filtered Dataset", visible=False)
-            }
+            dataset_box_choices = seaborn_libraries
+            dataset_box_value = dataset_box_choices[0]
+            dataset_box_visible = True
         case "Sklearn":
-            return {
-                dataset_box: gr.Radio(label="Enter the dataset name: ", value=sklearn_libraries[0], choices=sklearn_libraries, visible=True),
-                output_conf_col: gr.Column(visible=True),
-                read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=None, choices=read_with_gen),
-                location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
-                structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
-                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=False),
-                submit_conf_btn: gr.Button("Submit configurations", visible=False),
-                filter_fields: gr.Dropdown(label="Select Field", choices=[]),
-                generated_dataset_col: gr.Column(visible=False),
-                individual_dataset_col: gr.Column(visible=False),
-                output_result_col: gr.Column(visible=False),
-                gen_info_text: gr.Text(visible=False),
-                result_box: gr.DataFrame(None),
-                export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=False),
-                export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=False),
-                submit_export_btn: gr.Button("Export Filtered Dataset", visible=False)
-            }
+            dataset_box_choices = sklearn_libraries
+            dataset_box_value = dataset_box_choices[0]
+            dataset_box_visible = True
         case "Generated":
-            return {
-                dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
-                output_conf_col: gr.Column(visible=False),
-                read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=None, choices=read_with_gen),
-                location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
-                structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
-                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=False),
-                submit_conf_btn: gr.Button("Submit configurations", visible=False),
-                filter_fields: gr.Dropdown(label="Select Field", choices=[]),
-                generated_dataset_col: gr.Column(visible=True),
-                individual_dataset_col: gr.Column(visible=False),
-                output_result_col: gr.Column(visible=False),
-                gen_info_text: gr.Text(visible=False),
-                result_box: gr.DataFrame(None),
-                export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=False),
-                export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=False),
-                submit_export_btn: gr.Button("Export Filtered Dataset", visible=False)
-            }
+            dataset_box_value = None
+            dataset_box_visible = False
         case "Individual":
-            return {
-                dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
-                output_conf_col: gr.Column(visible=False),
-                read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=None, choices=read_with_gen),
-                location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
-                structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
-                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=False),
-                submit_conf_btn: gr.Button("Submit configurations", visible=False),
-                filter_fields: gr.Dropdown(label="Select Field", choices=[]),
-                generated_dataset_col: gr.Column(visible=False),
-                individual_dataset_col: gr.Column(visible=True),
-                output_result_col: gr.Column(visible=False),
-                gen_info_text: gr.Text(visible=False),
-                result_box: gr.DataFrame(None),
-                export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=False),
-                export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=False),
-                submit_export_btn: gr.Button("Export Filtered Dataset", visible=False)
-            }
+            dataset_box_value = None
+            dataset_box_visible = False
         case _:
             return {error_box: gr.Textbox(value="Wrong data source selected!", visible=True)}
+        
+    return {
+        dataset_box: gr.Radio(label="Enter the dataset name: ", value=dataset_box_value, choices=dataset_box_choices, visible=dataset_box_visible),
+        output_conf_col: gr.Column(visible=(source_name=="Seaborn" or source_name=="Sklearn")),
+
+        read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=None, choices=read_with_gen),
+        location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
+        structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
+        limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=False),
+        submit_conf_btn: gr.Button("Submit configurations", visible=False),
+        
+        generated_dataset_col: gr.Column(visible=source_name=="Generated"),
+        individual_dataset_col: gr.Column(visible=source_name=="Individual"),
+        output_result_col: gr.Column(visible=False),
+        gen_info_text: gr.Text(visible=False),
+        result_box: gr.DataFrame(None),
+
+        filter_fields: gr.Dropdown(label="Select Field", choices=[]),
+        export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=False),
+        export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=False),
+        submit_export_btn: gr.Button("Export Filtered Dataset", visible=False)
+    }
 
 def turn_preparation(source_name: str, read_with_gen: bool):
     if read_with_gen is not None:
         match source_name:
             case "Seaborn" | "Sklearn":
                 if read_with_gen:
-                    return {
-                        location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=True),
-                        structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value=read_by.seaborn_sklearn_gen_list()[0], choices=read_by.seaborn_sklearn_gen_list(), visible=True),
-                        limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=True),
-                        submit_conf_btn: gr.Button("Submit configurations", visible=True)
-                    }
+                    structure_method_box_value = read_by.seaborn_sklearn_gen_list()[0]
+                    structure_method_box_choices = read_by.seaborn_sklearn_gen_list()
                 else:
-                    return {
-                        location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=True),
-                        structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value=read_by.list()[0], choices=read_by.list(), visible=True),
-                        limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=True),
-                        submit_conf_btn: gr.Button("Submit configurations", visible=True)
-                    }
+                    structure_method_box_value = read_by.list()[0]
+                    structure_method_box_choices = read_by.list()
             case "Individual":
-                return {
-                    location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
-                    structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
-                    limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=False),
-                    submit_conf_btn: gr.Button("Submit configurations", visible=True)
-                }
+                structure_method_box_value = "Normal"
+                structure_method_box_choices = read_by.list()
             case _:
                 raise Exception("Wrong source!")
+            
+        return {
+            location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=(source_name!="Individual")),
+            structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value=structure_method_box_value, choices=structure_method_box_choices, visible=(source_name!="Individual")),
+            limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=(source_name!="Individual")),
+            submit_conf_btn: gr.Button("Submit configurations", visible=True)
+        }
 
 def turn_details(dataset: pd.DataFrame):
     if dataset.columns.tolist() == [1,2,3] and dataset.shape[0] == 1: # gr.DataFrame is empty with [1,2,3] columns and one null record with index 0
@@ -358,24 +302,15 @@ def turn_details(dataset: pd.DataFrame):
         }
 
 def turn_comparision(dtype: str):
-    if dtype == "Str":
-        return {numeric_filter: gr.Radio(label="Select comparision mark (Only for numeric filter!)", value=comparision_marks[2], choices=comparision_marks, visible=False)}
-    else:
-        return {numeric_filter: gr.Radio(label="Select comparision mark (Only for numeric filter!)", value=comparision_marks[2], choices=comparision_marks, visible=True)}               
+    return {numeric_filter: gr.Radio(label="Select comparision mark (Only for numeric filter!)", value=comparision_marks[2], choices=comparision_marks, visible=(dtype != "Str"))}
 
 def turn_extraction(filtered_dataset: pd.DataFrame, is_filtered: bool):
-    if is_filtered:
-        return {
-            extractor_position: gr.Radio(label="Extract samples from: ", value=read_from.list()[0], choices=read_from.list(), visible=True),
-            extractor_quantity: gr.Number(label="Enter number of rows: ", value=1, minimum=1, maximum=len(filtered_dataset), visible=True),
-            submit_sampling_btn: gr.Button("Extract slice of samples", visible=True)
-        }
-    else:
-        return {
-            extractor_position: gr.Radio(label="Extract samples from: ", value=read_from.list()[0], choices=read_from.list(), visible=False),
-            extractor_quantity: gr.Number(label="Enter number of rows: ", value=1, minimum=1, maximum=len(filtered_dataset), visible=False),
-            submit_sampling_btn: gr.Button("Extract slice of samples", visible=False)
-        }
+    return {
+        extractor_position: gr.Radio(label="Extract samples from: ", value=read_from.list()[0], choices=read_from.list(), visible=is_filtered),
+        extractor_quantity: gr.Number(label="Enter number of rows: ", value=1, minimum=1, maximum=len(filtered_dataset), visible=is_filtered),
+        submit_sampling_btn: gr.Button("Extract slice of samples", visible=is_filtered)
+    }
+
 
 css = """body {background-color: rgb(111,15,25)}"""
 if __name__ == "__main__":
