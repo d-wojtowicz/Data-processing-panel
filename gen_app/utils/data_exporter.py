@@ -30,10 +30,10 @@ class DataExporter(object):
 
         with open(full_path, "w") as Txt:
             if type(self.dataset) == pd.DataFrame:
-                Txt.write(value_separator.join(map(str, self.dataset.columns)) + row_separator + "\n")
+                Txt.write(value_separator.join(map(str, self.dataset.columns)) + "\n")
                 for _, row in self.dataset.iterrows():
                     row_str = value_separator.join(map(str, row))
-                    Txt.write(row_str + row_separator + "\n")
+                    Txt.write(row_str + "\n")
             elif type(self.dataset) == GeneratorType:
                 checked_the_generator = False
                 columns_displayed = False

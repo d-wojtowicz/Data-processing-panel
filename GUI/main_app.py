@@ -243,7 +243,7 @@ def turn_configuration(source_name: str):
                 read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=None, choices=read_with_gen),
                 location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
                 structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
-                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=False),
+                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=False),
                 submit_conf_btn: gr.Button("Submit configurations", visible=False),
                 filter_fields: gr.Dropdown(label="Select Field", choices=[]),
                 generated_dataset_col: gr.Column(visible=False),
@@ -262,7 +262,7 @@ def turn_configuration(source_name: str):
                 read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=None, choices=read_with_gen),
                 location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
                 structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
-                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=False),
+                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=False),
                 submit_conf_btn: gr.Button("Submit configurations", visible=False),
                 filter_fields: gr.Dropdown(label="Select Field", choices=[]),
                 generated_dataset_col: gr.Column(visible=False),
@@ -281,7 +281,7 @@ def turn_configuration(source_name: str):
                 read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=None, choices=read_with_gen),
                 location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
                 structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
-                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=False),
+                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=False),
                 submit_conf_btn: gr.Button("Submit configurations", visible=False),
                 filter_fields: gr.Dropdown(label="Select Field", choices=[]),
                 generated_dataset_col: gr.Column(visible=True),
@@ -300,7 +300,7 @@ def turn_configuration(source_name: str):
                 read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=None, choices=read_with_gen),
                 location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
                 structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
-                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=False),
+                limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=False),
                 submit_conf_btn: gr.Button("Submit configurations", visible=False),
                 filter_fields: gr.Dropdown(label="Select Field", choices=[]),
                 generated_dataset_col: gr.Column(visible=False),
@@ -323,21 +323,21 @@ def turn_preparation(source_name: str, read_with_gen: bool):
                     return {
                         location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=True),
                         structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value=read_by.seaborn_sklearn_gen_list()[0], choices=read_by.seaborn_sklearn_gen_list(), visible=True),
-                        limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=True),
+                        limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=True),
                         submit_conf_btn: gr.Button("Submit configurations", visible=True)
                     }
                 else:
                     return {
                         location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=True),
                         structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value=read_by.list()[0], choices=read_by.list(), visible=True),
-                        limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=True),
+                        limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=True),
                         submit_conf_btn: gr.Button("Submit configurations", visible=True)
                     }
             case "Individual":
                 return {
                     location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
                     structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
-                    limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=False),
+                    limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=False),
                     submit_conf_btn: gr.Button("Submit configurations", visible=True)
                 }
             case _:
@@ -409,7 +409,7 @@ if __name__ == "__main__":
                             read_method_box = gr.Radio(label="Do you want to read the data with a generator?", choices=read_with_gen)
                             location_method_box = gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False)
                             structure_method_box = gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False)
-                            limit_box = gr.Slider(label="Please select number of records: ", minimum=1, maximum=1000, value=5, step=5, visible=False)
+                            limit_box = gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=False)
                             submit_conf_btn = gr.Button("Submit configurations", visible=False)
 
                     # Right Panel   
