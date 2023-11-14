@@ -1,7 +1,6 @@
-#TODO: Check import functionality (Individual)
-#TODO: Include sorting out the dataframe from the filtering panel to be remembered during export
-#TODO: If it is possible, then add deleting columns in normal and filtering
+#TODO: Column deleting, Including sorting to be remembered during export
 #TODO: Check export functionality
+#TODO: !!!Graph panel? Histogram, dot, line & bar chart, Statistical Analysis: std, med, avg etc.
 
 # OTHER:
 #TODO: Main_performance apply OOP changes
@@ -10,10 +9,6 @@
 
 # ADDITIONAL:
 #TODO: Facade - response, boilerplate
-#TODO: Update result_box by three buttons displaying: Table, Statistical Analysis, Log
-# Table: Interactive DataFrame with checking datatypes before applying changes
-# Statistical Analysis: std, med, avg etc.
-# Log: Measurements of all steps while data processing (save to file & output it)
 
 """
 NOTES:
@@ -312,7 +307,6 @@ def turn_extraction(filtered_dataset: pd.DataFrame, is_filtered: bool):
     }
 
 
-css = """body {background-color: rgb(111,15,25)}"""
 if __name__ == "__main__":
     with gr.Blocks(title="Dataset Converter") as my_app:
         error_box = gr.Textbox(label="Error", visible=False)

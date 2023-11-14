@@ -37,7 +37,7 @@ class DataManager(object):
                 if limit < len(self.dataset):
                     result_df = self.dataset.sample(limit)
                 else:
-                    result_df = self.dataset.sample()
+                    result_df = self.dataset.sample(len(self.dataset))
             case _:
                 raise Exception("You did not specified correct 'read_from' enumerator value!")      
 
