@@ -86,7 +86,7 @@ def value_handler(source_name: str, df_name: str, read_with_gen: bool = True, lo
 
     dataset = None
     if source_name == "Generated":
-        read_with_gen = False
+        read_with_gen = False       # CHECK THIS
         global generated_dataset
         dataset = generated_dataset
     elif source_name == "Individual":
@@ -96,20 +96,20 @@ def value_handler(source_name: str, df_name: str, read_with_gen: bool = True, lo
     
     print("A", df_name, source_name, location_method, structure_method, row_count, read_with_gen)
     dataReader = DataReader(df_name, source_name, location_method, structure_method, row_count, by_gen=read_with_gen, dataset_for_generated=dataset)
-    result_df = dataReader.read_data()
-    print("B", result_df)
+    result_ds = dataReader.read_data()
+    print("B", result_ds)
 
     # Odpowiednie przetwarzanie
     if source_name in ["Seaborn", "Sklearn"]:
         if structure_method == read_by.CHUNKS and read_with_gen == True:
-                result_df = gen_to_df(result_df)
+                result_ds = gen_to_df(result_ds)
         
     if df_name == "Individual":
-        if type(result_df) == GeneratorType:
+        if type(result_ds) == GeneratorType:
             if source_name.endswith((".txt", ".csv", ".json")):
-                result_df = gen_to_df(result_df)
+                result_ds = gen_to_df(result_ds)
 
-    return pd.DataFrame(result_df)
+    return result_ds
 
 def submit_gen(col_number: int, row_number: int):
     try:
@@ -123,7 +123,7 @@ def submit_gen(col_number: int, row_number: int):
             output_conf_col: gr.Column(visible=False),
             output_result_col: gr.Column(visible=True),
             individual_dataset_col: gr.Column(visible=False),
-            result_box: gr.DataFrame(label="Result: ", value=generated_dataset_to_df, interactive=1)
+            result_box: gr.DataFrame(label="Result: ", value=pd.DataFrame(generated_dataset_to_df), interactive=1)
         }
     except Exception as e:
         return {error_box: gr.Textbox(value=str(e), visible=True)}
@@ -151,10 +151,10 @@ def submit_file(file_reader):
         return {error_box: gr.Textbox(value="First you have to select the file!", visible=True)}
 
 def submit_conf(source_name: str, df_name: str, read_with_gen: bool, location_method: str, structure_method: str, limit: str):    
-    df = value_handler(source_name, df_name, read_with_gen, location_method, structure_method, limit)
+    dataset = value_handler(source_name, df_name, read_with_gen, location_method, structure_method, limit)
     return {
         output_result_col: gr.Column(visible=True),
-        result_box: gr.DataFrame(label="Result: ", value=df, interactive=1)
+        result_box: gr.DataFrame(label="Result: ", value=pd.DataFrame(dataset), interactive=1)
     }
 
 def submit_filter(dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_name: str, col_dtype: str, filter_value: Union[int, str, float], numeric_comparator: str, operate_on_filtered: bool=False):
@@ -283,7 +283,7 @@ def turn_preparation(source_name: str, read_with_gen: bool):
         }
 
 def turn_details(dataset: pd.DataFrame):
-    if dataset.columns.tolist() == [1,2,3] and dataset.shape[0] == 1: # gr.DataFrame is empty with [1,2,3] columns and one null record with index 0
+    if dataset.columns.tolist() == ['1','2','3'] and dataset.shape[0] == 1: # gr.DataFrame is empty with [1,2,3] columns and one null record with index 0
         return {
             status_before: gr.Column(visible=True),
             status_after: gr.Column(visible=False), 
@@ -346,7 +346,7 @@ if __name__ == "__main__":
                         with gr.Column(visible=False) as output_result_col:
                             result_box = gr.DataFrame()
 
-            with gr.TabItem("Details & Filtering", visible=False):
+            with gr.TabItem("Details & Filtering"):
                 # Filtering Panel
                 with gr.Row():
                     with gr.Column(visible=True) as status_before:
