@@ -1,3 +1,5 @@
+# Sprawdzic połączenie z eksportem (Od początku do etapu wyświetlenia result_box generatory nie zapisuja sięw pamięci JEST KOX)
+
 #TODO: Column deleting, Including sorting to be remembered during export
 #TODO: Check export functionality
 #TODO: !!!Graph panel? Histogram, dot, line & bar chart, Statistical Analysis: std, med, avg etc.
@@ -86,7 +88,6 @@ def value_handler(source_name: str, df_name: str, read_with_gen: bool = True, lo
 
     dataset = None
     if source_name == "Generated":
-        read_with_gen = False       # CHECK THIS
         global generated_dataset
         dataset = generated_dataset
     elif source_name == "Individual":
@@ -94,20 +95,23 @@ def value_handler(source_name: str, df_name: str, read_with_gen: bool = True, lo
         source_name = individual_dataset_path
         df_name = "Individual"
     
-    print("A", df_name, source_name, location_method, structure_method, row_count, read_with_gen)
+    #print("A", df_name, source_name, location_method, structure_method, row_count, read_with_gen)
     dataReader = DataReader(df_name, source_name, location_method, structure_method, row_count, by_gen=read_with_gen, dataset_for_generated=dataset)
     result_ds = dataReader.read_data()
-    print("B", result_ds)
+    #print("B", result_ds)
 
-    # Odpowiednie przetwarzanie
     if source_name in ["Seaborn", "Sklearn"]:
         if structure_method == read_by.CHUNKS and read_with_gen == True:
-                result_ds = gen_to_df(result_ds)
+            return gen_to_df(result_ds)
         
+    if source_name == "Generated":
+        if type(result_ds) == GeneratorType:
+            return gen_to_df(result_ds)
+
     if df_name == "Individual":
         if type(result_ds) == GeneratorType:
             if source_name.endswith((".txt", ".csv", ".json")):
-                result_ds = gen_to_df(result_ds)
+                return gen_to_df(result_ds)
 
     return result_ds
 
@@ -117,7 +121,7 @@ def submit_gen(col_number: int, row_number: int):
 
         global generated_dataset
         generated_dataset = dataGen.generate_dataframe_by_gen()
-        generated_dataset_to_df = value_handler(source_name="Generated", df_name="Generated")
+        generated_dataset_to_df = value_handler(source_name="Generated", df_name="Generated", read_with_gen=True)
         return {
             gen_info_text: gr.Text("The dataset was successfully generated!", visible=True),
             output_conf_col: gr.Column(visible=False),
