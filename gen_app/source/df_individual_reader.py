@@ -16,7 +16,7 @@ class DataIndividualReader(object):
         self.file_path: str = file_path
 
         self.by_gen: bool = by_gen
-        self.ADJUSTABLE_CHUNK_SIZE = 1000
+        self.ADJUSTABLE_CHUNK_SIZE = ADJUSTABLE_CHUNK_SIZE
 
     def read_df_from_input(self) -> None:
         match self.file_path:

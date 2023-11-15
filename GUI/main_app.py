@@ -19,6 +19,7 @@ Seaborn, Sklearn & Generated are designed to show the efficiency of generators.
 IMPORT:
 ACTION: Using generators, we move the moment of writing data to memory from the very beginning to just before the display 
 (To show the data on the page, we need the dataframe format).
+The generator is converted to a dataframe not until a parameter with itself is passed to the result_box.
 PURPOSE: We transfer the data in the generator format until it is written before displaying.
 EFFECT: We do not move a previously saved object in memory several times (memory-saving).
 
@@ -103,10 +104,6 @@ def value_handler(source_name: str, df_name: str, read_with_gen: bool = True, lo
     if source_name in ["Seaborn", "Sklearn"]:
         if structure_method == read_by.CHUNKS and read_with_gen == True:
             return gen_to_df(result_ds)
-        
-    if source_name == "Generated":
-        if type(result_ds) == GeneratorType:
-            return gen_to_df(result_ds)
 
     if df_name == "Individual":
         if type(result_ds) == GeneratorType:
@@ -127,7 +124,7 @@ def submit_gen(col_number: int, row_number: int):
             output_conf_col: gr.Column(visible=False),
             output_result_col: gr.Column(visible=True),
             individual_dataset_col: gr.Column(visible=False),
-            result_box: gr.DataFrame(label="Result: ", value=pd.DataFrame(generated_dataset_to_df), interactive=1)
+            result_box: gr.DataFrame(label="Result: ", value=pd.DataFrame(gen_to_df(generated_dataset_to_df)), interactive=1)
         }
     except Exception as e:
         return {error_box: gr.Textbox(value=str(e), visible=True)}
@@ -205,7 +202,11 @@ def submit_sample(dataset: pd.DataFrame, read_from: Enum, number_of_records: int
         return {error_box: gr.Textbox(value=str(e), visible=True)}
 
 def submit_export(filtered_dataset: pd.DataFrame, format: str) -> None:
-    dataExporter = DataExporter(filtered_dataset, "Exported")
+    if format in ["TXT", "JSON", "CSV", "XLSX"]:
+        filtered_gen = df_to_gen(filtered_dataset)
+        dataExporter = DataExporter(filtered_gen, "Exported")
+    else:
+        dataExporter = DataExporter(filtered_dataset, "Exported")
     match format:
         case "TXT":
             dataExporter.export_to_txt()
