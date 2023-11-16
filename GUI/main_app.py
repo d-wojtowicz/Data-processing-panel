@@ -1,5 +1,4 @@
-# Zmiana data source szwankuje (zwłąszcza po wygenerowaniu filtrowanego df)nie resetuje details i filtering
-# Reset filtrowanego dfa, gdy wczytam nowy/gdy zmienie source
+# Przy zmianie result_boxa (bo wykryje jakąś zmianę dataframe na inny) ma zmienić turn_details resetowanie wszystkich ustawień w filtrowaniu
 
 #TODO: Column deleting, Including sorting to be remembered during export
 #TODO: Check export functionality
@@ -301,13 +300,15 @@ def turn_details(dataset: pd.DataFrame):
         return {
             status_before: gr.Column(visible=True),
             status_after: gr.Column(visible=False), 
-            filter_fields: gr.Dropdown(label="Select Field", choices=[])
+            filter_fields: gr.Dropdown(label="Select Field", choices=[]),
+            filter_result: gr.DataFrame(None)
         }
     else:
         return {
             status_before: gr.Column(visible=False),
             status_after: gr.Column(visible=True),
-            filter_fields: gr.Dropdown(label="Select Field", value=dataset.columns[0], choices=dataset.columns.tolist())
+            filter_fields: gr.Dropdown(label="Select Field", value=dataset.columns[0], choices=dataset.columns.tolist()),
+            filter_result: gr.DataFrame(label="Result: ", value=pd.DataFrame(dataset), interactive=1)
         }
 
 def turn_comparision(dtype: str):
@@ -448,7 +449,7 @@ if __name__ == "__main__":
         result_box.change(
             turn_details,
             [result_box],
-            [error_box, status_before, status_after, filter_fields]
+            [error_box, status_before, status_after, filter_fields, filter_result]
         )
 
         ### On-change 'Details & Filtering' section ###
