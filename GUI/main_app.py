@@ -1,4 +1,5 @@
-# Sprawdzic połączenie z eksportem (Od początku do etapu wyświetlenia result_box generatory nie zapisuja sięw pamięci JEST KOX)
+# Zmiana data source szwankuje (zwłąszcza po wygenerowaniu filtrowanego df)nie resetuje details i filtering
+# Reset filtrowanego dfa, gdy wczytam nowy/gdy zmienie source
 
 #TODO: Column deleting, Including sorting to be remembered during export
 #TODO: Check export functionality
@@ -47,7 +48,7 @@ from gen_app.utils.data_exporter import DataExporter
 from gen_app.utils.pandas_extension import DataManager, gen_to_df, df_to_gen
 
 from gen_app.variables.enumerators import read_by, read_from, reader_tester
-from gen_app.variables.lists import seaborn_libraries, sklearn_libraries, comparision_marks, exports, read_with_gen
+from gen_app.variables.lists import seaborn_libraries, sklearn_libraries, comparision_marks, gen_exports, exports, read_with_gen
 
 generated_dataset = None
 individual_dataset_path = None
@@ -181,7 +182,8 @@ def submit_filter(dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_nam
             source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=True),
 
             export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=True),
-            export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=True),
+            export_method: gr.Radio(label="Do you want to read the data with a generator?", value=read_with_gen[0], choices=read_with_gen, visible=True),
+            export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=gen_exports[0], choices=gen_exports, visible=True),
             submit_export_btn: gr.Button("Export Filtered Dataset", visible=True)
         }
         
@@ -201,12 +203,12 @@ def submit_sample(dataset: pd.DataFrame, read_from: Enum, number_of_records: int
     except Exception as e:
         return {error_box: gr.Textbox(value=str(e), visible=True)}
 
-def submit_export(filtered_dataset: pd.DataFrame, format: str) -> None:
-    if format in ["TXT", "JSON", "CSV", "XLSX"]:
+def submit_export(filtered_dataset: pd.DataFrame, export_method_by_gen: bool, format: str) -> None:
+    if export_method_by_gen:
         filtered_gen = df_to_gen(filtered_dataset)
-        dataExporter = DataExporter(filtered_gen, "Exported")
+        dataExporter = DataExporter(filtered_gen, "Exported_by_gen")
     else:
-        dataExporter = DataExporter(filtered_dataset, "Exported")
+        dataExporter = DataExporter(filtered_dataset, "Exported_by_df")
     match format:
         case "TXT":
             dataExporter.export_to_txt()
@@ -260,7 +262,8 @@ def turn_configuration(source_name: str):
 
         filter_fields: gr.Dropdown(label="Select Field", choices=[]),
         export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=False),
-        export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=False),
+        export_method: gr.Radio(label="Do you want to read the data with a generator?", value=read_with_gen[0], choices=read_with_gen, visible=False),
+        export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=gen_exports[0], choices=gen_exports, visible=False),
         submit_export_btn: gr.Button("Export Filtered Dataset", visible=False)
     }
 
@@ -286,9 +289,15 @@ def turn_preparation(source_name: str, read_with_gen: bool):
             limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=(source_name!="Individual")),
             submit_conf_btn: gr.Button("Submit configurations", visible=True)
         }
+    return {
+        location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
+        structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
+        limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=False),
+        submit_conf_btn: gr.Button("Submit configurations", visible=False)
+    }
 
 def turn_details(dataset: pd.DataFrame):
-    if dataset.columns.tolist() == ['1','2','3'] and dataset.shape[0] == 1: # gr.DataFrame is empty with [1,2,3] columns and one null record with index 0
+    if (dataset.columns.tolist() == ['1','2','3'] or dataset.columns.tolist() == [1,2,3]) and dataset.shape[0] == 1: # gr.DataFrame is empty with [1,2,3] columns and one null record with index 0
         return {
             status_before: gr.Column(visible=True),
             status_after: gr.Column(visible=False), 
@@ -311,7 +320,12 @@ def turn_extraction(filtered_dataset: pd.DataFrame, is_filtered: bool):
         submit_sampling_btn: gr.Button("Extract slice of samples", visible=is_filtered)
     }
 
-
+def turn_export_preparation(export_method_by_gen: bool):
+    if export_method_by_gen:
+        return {export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=gen_exports[0], choices=gen_exports, visible=True)}
+    else:
+        return {export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=True)}
+    
 if __name__ == "__main__":
     with gr.Blocks(title="Dataset Converter") as my_app:
         error_box = gr.Textbox(label="Error", visible=False)
@@ -376,7 +390,8 @@ if __name__ == "__main__":
 
                 # Exporting Panel
                 export_info = gr.Text(visible=False)
-                export_format = gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=False)
+                export_method = gr.Radio(label="Do you want to read the data with a generator?", value=read_with_gen[0], choices=read_with_gen, visible=False)
+                export_format = gr.Radio(label="Select export format for the filtered dataset: ", value=gen_exports[0], choices=gen_exports, visible=False)
                 submit_export_btn = gr.Button("Export Filtered Dataset", visible=False)
                 
         ### On-click 'Dataset' section ###
@@ -409,19 +424,19 @@ if __name__ == "__main__":
             submit_filter,
             [result_box, filter_result, filter_fields, filter_dtype, filter_value, numeric_filter, source_selector],
             [error_box, filter_result, source_selector, 
-             export_info, export_format, submit_export_btn]
+             export_info, export_method, export_format, submit_export_btn]
         )
 
         submit_export_btn.click(
             submit_export,
-            [filter_result, export_format]
+            [filter_result, export_method, export_format]
         )
 
         ### On-change 'Dataset' section ###
         source_box.change(
             turn_configuration,
             [source_box],
-            [error_box, read_method_box, location_method_box, structure_method_box, limit_box, submit_conf_btn, dataset_box, output_conf_col, filter_fields, generated_dataset_col, individual_dataset_col, output_result_col, gen_info_text, result_box, export_info, export_format, submit_export_btn]
+            [error_box, read_method_box, location_method_box, structure_method_box, limit_box, submit_conf_btn, dataset_box, output_conf_col, filter_fields, generated_dataset_col, individual_dataset_col, output_result_col, gen_info_text, result_box, export_info, export_method, export_format, submit_export_btn]
         )
         
         read_method_box.change(
@@ -447,6 +462,12 @@ if __name__ == "__main__":
             turn_extraction,
             [filter_result, source_selector],
             [extractor_position, extractor_quantity, submit_sampling_btn]
+        )
+
+        export_method.change(
+            turn_export_preparation,
+            [export_method],
+            [export_format]
         )
 
     my_app.launch()
