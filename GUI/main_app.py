@@ -1,7 +1,4 @@
-# Przy zmianie result_boxa (bo wykryje jakąś zmianę dataframe na inny) ma zmienić turn_details resetowanie wszystkich ustawień w filtrowaniu
-
 #TODO: Column deleting, Including sorting to be remembered during export
-#TODO: Check export functionality
 #TODO: !!!Graph panel? Histogram, dot, line & bar chart, Statistical Analysis: std, med, avg etc.
 
 # OTHER:
@@ -296,20 +293,35 @@ def turn_preparation(source_name: str, read_with_gen: bool):
     }
 
 def turn_details(dataset: pd.DataFrame):
-    if (dataset.columns.tolist() == ['1','2','3'] or dataset.columns.tolist() == [1,2,3]) and dataset.shape[0] == 1: # gr.DataFrame is empty with [1,2,3] columns and one null record with index 0
-        return {
-            status_before: gr.Column(visible=True),
-            status_after: gr.Column(visible=False), 
-            filter_fields: gr.Dropdown(label="Select Field", choices=[]),
-            filter_result: gr.DataFrame(None)
-        }
+    IS_DATASET_NULL = (dataset.columns.tolist() == ['1','2','3'] or dataset.columns.tolist() == [1,2,3]) and dataset.shape[0] == 1 # gr.DataFrame is empty with [1,2,3] columns and one null record with index 0
+    if IS_DATASET_NULL: 
+        filter_fields_choices = []
+        filter_fields_value = None
     else:
-        return {
-            status_before: gr.Column(visible=False),
-            status_after: gr.Column(visible=True),
-            filter_fields: gr.Dropdown(label="Select Field", value=dataset.columns[0], choices=dataset.columns.tolist()),
-            filter_result: gr.DataFrame(label="Result: ", value=pd.DataFrame(dataset), interactive=1)
-        }
+        filter_fields_choices = dataset.columns.tolist()
+        filter_fields_value = dataset.columns[0]
+
+    return {
+        status_before: gr.Column(visible=IS_DATASET_NULL),
+        status_after: gr.Column(visible=not IS_DATASET_NULL),
+
+        filter_fields: gr.Dropdown(label="Select Field", value=filter_fields_value, choices=filter_fields_choices),
+        filter_dtype: gr.Radio(label="Filtering by", choices=["Str", "Int", "Float"], value="Str"),
+        filter_value: gr.Textbox(label="Enter value (e.g. 'a'; 'a,b,c'; '2,5,10'; '3.14,1.618')", value=""),
+        numeric_filter: gr.Radio(label="Select comparision mark (Only for numeric filter!)", value=comparision_marks[2], choices=comparision_marks, visible=False),
+                                
+        source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", value=False, visible=False),
+        extractor_position: gr.Radio(label="Extract samples from: ", value=read_from.list()[0], choices=read_from.list(), visible=False),
+        extractor_quantity: gr.Number(label="Enter number of rows: ", value=1, minimum=1, maximum=1000, visible=False),
+        submit_sampling_btn: gr.Button("Extract slice of samples", visible=False),
+        
+        filter_result: gr.DataFrame(None) if IS_DATASET_NULL else gr.DataFrame(label="Result: ", value=pd.DataFrame(dataset), interactive=1),
+
+        export_info: gr.Text(visible=False),
+        export_method: gr.Radio(label="Do you want to export the data with a generator?", value=None, choices=read_with_gen, visible=False),
+        export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=gen_exports[0], choices=gen_exports, visible=False),
+        submit_export_btn: gr.Button("Export Filtered Dataset", visible=False)
+    }
 
 def turn_comparision(dtype: str):
     return {numeric_filter: gr.Radio(label="Select comparision mark (Only for numeric filter!)", value=comparision_marks[2], choices=comparision_marks, visible=(dtype != "Str"))}
@@ -322,10 +334,11 @@ def turn_extraction(filtered_dataset: pd.DataFrame, is_filtered: bool):
     }
 
 def turn_export_preparation(export_method_by_gen: bool):
-    if export_method_by_gen:
-        return {export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=gen_exports[0], choices=gen_exports, visible=True)}
-    else:
-        return {export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=True)}
+    if export_method_by_gen is not None:
+        if export_method_by_gen:
+            return {export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=gen_exports[0], choices=gen_exports, visible=True)}
+        else:
+            return {export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=True)}
     
 if __name__ == "__main__":
     with gr.Blocks(title="Dataset Converter") as my_app:
@@ -388,7 +401,7 @@ if __name__ == "__main__":
                 
                         # APPLY SETTINGS
                         submit_filter_ds_btn = gr.Button("Get Filtered Dataset")
-
+                
                 # Exporting Panel
                 export_info = gr.Text(visible=False)
                 export_method = gr.Radio(label="Do you want to export the data with a generator?", value=read_with_gen[0], choices=read_with_gen, visible=False)
@@ -449,7 +462,7 @@ if __name__ == "__main__":
         result_box.change(
             turn_details,
             [result_box],
-            [error_box, status_before, status_after, filter_fields, filter_result]
+            [error_box, status_before, status_after, filter_fields, filter_dtype, filter_value, numeric_filter, source_selector, extractor_position, extractor_quantity, submit_sampling_btn, export_info, export_method, export_format, submit_export_btn, filter_result]
         )
 
         ### On-change 'Details & Filtering' section ###
