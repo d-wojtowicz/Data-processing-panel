@@ -30,10 +30,10 @@ class DataExporter(object):
 
         with open(full_path, "w") as Txt:
             if type(self.dataset) == pd.DataFrame:
-                Txt.write(value_separator.join(map(str, self.dataset.columns)) + row_separator + "\n")
+                Txt.write(value_separator.join(map(str, self.dataset.columns)) + "\n")
                 for _, row in self.dataset.iterrows():
                     row_str = value_separator.join(map(str, row))
-                    Txt.write(row_str + row_separator + "\n")
+                    Txt.write(row_str + "\n")
             elif type(self.dataset) == GeneratorType:
                 checked_the_generator = False
                 columns_displayed = False
@@ -54,7 +54,7 @@ class DataExporter(object):
                                 raise Exception("The dataset could NOT be exported!")
                             
                         column_str = value_separator.join(map(str, column_names))
-                        Txt.write(column_str + row_separator + "\n")
+                        Txt.write(column_str + "\n")
                         columns_displayed = True
                         if GENERATED_FROM == "TUPLE_GENERATOR": 
                             continue
@@ -62,10 +62,10 @@ class DataExporter(object):
                     if GENERATED_FROM == "CHUNK_GENERATOR":
                         for _, single_row in row.iterrows():
                             row_str = value_separator.join(map(str, single_row))
-                            Txt.write(row_str + row_separator + "\n")
+                            Txt.write(row_str + "\n")
                     else:
                         row_str = value_separator.join(map(str, row))
-                        Txt.write(row_str + row_separator + "\n")
+                        Txt.write(row_str + "\n")
             else:
                 raise Exception("Unwanted input data types.")
         
