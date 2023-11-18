@@ -181,7 +181,7 @@ def submit_filter(dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_nam
             source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=True),
 
             export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=True),
-            export_method: gr.Radio(label="Do you want to read the data with a generator?", value=read_with_gen[0], choices=read_with_gen, visible=True),
+            export_method: gr.Radio(label="Do you want to export the data with a generator?", value=read_with_gen[0], choices=read_with_gen, visible=True),
             export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=gen_exports[0], choices=gen_exports, visible=True),
             submit_export_btn: gr.Button("Export Filtered Dataset", visible=True)
         }
@@ -261,7 +261,7 @@ def turn_configuration(source_name: str):
 
         filter_fields: gr.Dropdown(label="Select Field", choices=[]),
         export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=False),
-        export_method: gr.Radio(label="Do you want to read the data with a generator?", value=read_with_gen[0], choices=read_with_gen, visible=False),
+        export_method: gr.Radio(label="Do you want to export the data with a generator?", value=read_with_gen[0], choices=read_with_gen, visible=False),
         export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=gen_exports[0], choices=gen_exports, visible=False),
         submit_export_btn: gr.Button("Export Filtered Dataset", visible=False)
     }
@@ -391,7 +391,7 @@ if __name__ == "__main__":
 
                 # Exporting Panel
                 export_info = gr.Text(visible=False)
-                export_method = gr.Radio(label="Do you want to read the data with a generator?", value=read_with_gen[0], choices=read_with_gen, visible=False)
+                export_method = gr.Radio(label="Do you want to export the data with a generator?", value=read_with_gen[0], choices=read_with_gen, visible=False)
                 export_format = gr.Radio(label="Select export format for the filtered dataset: ", value=gen_exports[0], choices=gen_exports, visible=False)
                 submit_export_btn = gr.Button("Export Filtered Dataset", visible=False)
                 
