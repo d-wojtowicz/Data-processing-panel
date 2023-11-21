@@ -29,11 +29,14 @@ If the data were not displayed, it would be possible to keep the format of the g
 check through iterations of a loop each item generated on the fly to see if it meets the filtering conditions 
 (This would be less efficient than using the already optimised pandas library, so I decided to balance and partially implement the solution).
 """
-from enum import Enum
 import sys, os
+import io, base64
 
 from types import GeneratorType
 from typing import Union
+from enum import Enum
+import math
+import matplotlib.pyplot as plt
 import gradio as gr
 import pandas as pd
 
@@ -93,10 +96,8 @@ def value_handler(source_name: str, df_name: str, read_with_gen: bool = True, lo
         source_name = individual_dataset_path
         df_name = "Individual"
     
-    #print("A", df_name, source_name, location_method, structure_method, row_count, read_with_gen)
     dataReader = DataReader(df_name, source_name, location_method, structure_method, row_count, by_gen=read_with_gen, dataset_for_generated=dataset)
     result_ds = dataReader.read_data()
-    #print("B", result_ds)
 
     if source_name in ["Seaborn", "Sklearn"]:
         if structure_method == read_by.CHUNKS and read_with_gen == True:
@@ -219,6 +220,15 @@ def submit_export(filtered_dataset: pd.DataFrame, export_method_by_gen: bool, fo
         case _:
             raise Exception("You selected a wrong format of the export file!")
 
+def submit_analysis(filtered_dataset: pd.DataFrame):
+    numeric_columns = filtered_dataset.select_dtypes(include="number").columns.tolist()
+    return {
+        analysis_describe: gr.Dataframe(label="Basic descriptive statistics: ", value=filtered_dataset.describe().reset_index(), visible=True),
+        analysis_panel: gr.Row(visible=True),
+        analysis_numeric_fields_correlation: gr.Dropdown(label="Select fields", choices=numeric_columns, multiselect=True),
+        analysis_numeric_fields_histogram: gr.Dropdown(label="Select fields", choices=numeric_columns, multiselect=True)
+    }
+
 def turn_configuration(source_name: str):
     dataset_box_choices = dataset_box_visible = None
 
@@ -302,8 +312,10 @@ def turn_details(dataset: pd.DataFrame):
         filter_fields_value = dataset.columns[0]
 
     return {
-        status_before: gr.Column(visible=IS_DATASET_NULL),
-        status_after: gr.Column(visible=not IS_DATASET_NULL),
+        DF_status_before: gr.Column(visible=IS_DATASET_NULL),
+        SA_status_before: gr.Column(visible=IS_DATASET_NULL),
+        DF_status_after: gr.Column(visible=not IS_DATASET_NULL),
+        SA_status_after: gr.Column(visible=not IS_DATASET_NULL),
 
         filter_fields: gr.Dropdown(label="Select Field", value=filter_fields_value, choices=filter_fields_choices),
         filter_dtype: gr.Radio(label="Filtering by", choices=["Str", "Int", "Float"], value="Str"),
@@ -316,6 +328,8 @@ def turn_details(dataset: pd.DataFrame):
         submit_sampling_btn: gr.Button("Extract slice of samples", visible=False),
         
         filter_result: gr.DataFrame(None) if IS_DATASET_NULL else gr.DataFrame(label="Result: ", value=pd.DataFrame(dataset), interactive=1),
+        analysis_describe: gr.DataFrame(visible=False),
+        analysis_panel: gr.Row(visible=False),
 
         export_info: gr.Text(visible=False),
         export_method: gr.Radio(label="Do you want to export the data with a generator?", value=None, choices=read_with_gen, visible=False),
@@ -340,8 +354,50 @@ def turn_export_preparation(export_method_by_gen: bool):
         else:
             return {export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=True)}
     
+def turn_correlations(filtered_dataset: pd.DataFrame, analysis_numeric_fields: list[str]):
+    if len(analysis_numeric_fields) > 1:
+        return {
+            analysis_correlations: gr.DataFrame(
+                label="Correlations between " + str(analysis_numeric_fields), 
+                value=filtered_dataset[analysis_numeric_fields].corr().reset_index(), 
+                visible=True
+            )
+        }
+    else:
+        return {analysis_correlations: gr.DataFrame(label="",value=pd.DataFrame(None), visible=False)}
+
+def turn_histograms(filtered_dataset: pd.DataFrame, analysis_numeric_fields: list[str]):
+    if len(analysis_numeric_fields) > 0:
+        hist_per_row = math.ceil(math.sqrt(len(analysis_numeric_fields)))
+        hist_per_col = math.ceil(len(analysis_numeric_fields)/hist_per_row)
+        
+        if len(analysis_numeric_fields) > 1:
+            fig, axes = plt.subplots(hist_per_col,hist_per_row)
+            axes = axes.ravel()
+            for title, ax in zip(analysis_numeric_fields, axes):
+                ax.hist(filtered_dataset[title])
+
+                ax.set_title(f"Histogram - {title}")
+                ax.set_xlabel("Value")
+                ax.set_ylabel("Frequency")
+        else:
+            filtered_dataset[analysis_numeric_fields].hist()
+            plt.title(f"Histogram - {analysis_numeric_fields[0]}")
+            plt.xlabel("Value")
+            plt.ylabel("Frequency")
+
+        plt.tight_layout(pad=2.0)
+        plt.savefig("Histogram_TMP.png")
+
+        return {
+            analysis_histograms: gr.Image("Histogram_TMP.png", label="Plot", visible=True, elem_id="hist")
+        }
+    else:
+        return {analysis_histograms: gr.Image(None, label="Plot", visible=False, elem_id="hist")}
+
+global_css = '#hist{display: flex; justify-content: center} #hist img{width: 50vw}'
 if __name__ == "__main__":
-    with gr.Blocks(title="Dataset Converter") as my_app:
+    with gr.Blocks(title="Dataset Converter", css=global_css) as my_app:
         error_box = gr.Textbox(label="Error", visible=False)
 
         with gr.Tabs():
@@ -382,9 +438,9 @@ if __name__ == "__main__":
             with gr.TabItem("Details & Filtering"):
                 # Filtering Panel
                 with gr.Row():
-                    with gr.Column(visible=True) as status_before:
+                    with gr.Column(visible=True) as DF_status_before:
                         message_info = gr.Label(label="Info", value="In order to operate on the selected data set, it must first be loaded in the previous tab.")
-                    with gr.Column(visible=False) as status_after:
+                    with gr.Column(visible=False) as DF_status_after:
                         filter_fields = gr.Dropdown(label="Select Field", choices=[])
                         filter_dtype = gr.Radio(label="Filtering by", choices=["Str", "Int", "Float"], value="Str")
 
@@ -407,7 +463,27 @@ if __name__ == "__main__":
                 export_method = gr.Radio(label="Do you want to export the data with a generator?", value=read_with_gen[0], choices=read_with_gen, visible=False)
                 export_format = gr.Radio(label="Select export format for the filtered dataset: ", value=gen_exports[0], choices=gen_exports, visible=False)
                 submit_export_btn = gr.Button("Export Filtered Dataset", visible=False)
-                
+
+            with gr.TabItem("Statistical analysis"):
+                # Analysis panel
+                with gr.Row():
+                    with gr.Column(visible=True) as SA_status_before:
+                        message_info = gr.Label(label="Info", value="In order to operate on the selected data set, it must first be loaded in the previous tab.")
+                    with gr.Column(visible=False) as SA_status_after:
+                        analysis_info = gr.Text("Analysis is based on the dataset located in the filtering panel.", label="Important")
+                        start_analysis_btn = gr.Button("Start statistical analysis")
+
+                        analysis_describe = gr.DataFrame(visible=False)
+                        with gr.Row(visible=False) as analysis_panel:
+                            with gr.TabItem("Correlations"):
+                                analysis_numeric_fields_correlation = gr.Dropdown(label="Select fields", choices=[], multiselect=True)
+                                analysis_correlations = gr.DataFrame(visible=False)
+                            with gr.TabItem("Histograms"):
+                                analysis_numeric_fields_histogram = gr.Dropdown(label="Select fields", choices=[], multiselect=True)
+                                analysis_histograms = gr.Image(label="Plot", visible=False)
+                            with gr.TabItem("Boxplots"):
+                                """"""
+
         ### On-click 'Dataset' section ###
         submit_gen_btn.click(
             submit_gen,
@@ -446,6 +522,13 @@ if __name__ == "__main__":
             [filter_result, export_method, export_format]
         )
 
+        ### On-click 'Statistical analysis' section ###
+        start_analysis_btn.click(
+            submit_analysis,
+            [filter_result],
+            [analysis_describe, analysis_panel, analysis_numeric_fields_correlation, analysis_numeric_fields_histogram]
+        )
+
         ### On-change 'Dataset' section ###
         source_box.change(
             turn_configuration,
@@ -462,7 +545,7 @@ if __name__ == "__main__":
         result_box.change(
             turn_details,
             [result_box],
-            [error_box, status_before, status_after, filter_fields, filter_dtype, filter_value, numeric_filter, source_selector, extractor_position, extractor_quantity, submit_sampling_btn, export_info, export_method, export_format, submit_export_btn, filter_result]
+            [error_box, DF_status_before, DF_status_after, SA_status_before, SA_status_after, filter_fields, filter_dtype, filter_value, numeric_filter, source_selector, extractor_position, extractor_quantity, submit_sampling_btn, export_info, export_method, export_format, submit_export_btn, filter_result, analysis_describe, analysis_panel]
         )
 
         ### On-change 'Details & Filtering' section ###
@@ -482,6 +565,19 @@ if __name__ == "__main__":
             turn_export_preparation,
             [export_method],
             [export_format]
+        )
+
+        ### On-change 'Statistical analysis' section ###
+        analysis_numeric_fields_correlation.change(
+            turn_correlations,
+            [filter_result, analysis_numeric_fields_correlation],
+            [analysis_correlations]
+        )
+
+        analysis_numeric_fields_histogram.change(
+            turn_histograms,
+            [filter_result, analysis_numeric_fields_histogram],
+            [analysis_histograms]
         )
 
     my_app.launch()
