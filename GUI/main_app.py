@@ -39,6 +39,7 @@ import math
 import matplotlib.pyplot as plt
 import gradio as gr
 import pandas as pd
+import seaborn as sns
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from gen_app.source.data_reader import DataReader
@@ -52,6 +53,9 @@ from gen_app.variables.lists import seaborn_libraries, sklearn_libraries, compar
 generated_dataset = None
 individual_dataset_path = None
 dataManager = DataManager(pd.DataFrame())
+
+def is_text(value):
+    return isinstance(value, str) and any(char.isalpha() for char in value)
 
 def enum_handler(location_method: str, structure_method: str) -> (enumerate, enumerate):
     match location_method:
@@ -221,13 +225,37 @@ def submit_export(filtered_dataset: pd.DataFrame, export_method_by_gen: bool, fo
             raise Exception("You selected a wrong format of the export file!")
 
 def submit_analysis(filtered_dataset: pd.DataFrame):
+    result = filtered_dataset.applymap(is_text)
+    string_columns = result.columns[result.all()].tolist()
     numeric_columns = filtered_dataset.select_dtypes(include="number").columns.tolist()
     return {
         analysis_describe: gr.Dataframe(label="Basic descriptive statistics: ", value=filtered_dataset.describe().reset_index(), visible=True),
         analysis_panel: gr.Row(visible=True),
         analysis_numeric_fields_correlation: gr.Dropdown(label="Select fields", choices=numeric_columns, multiselect=True),
-        analysis_numeric_fields_histogram: gr.Dropdown(label="Select fields", choices=numeric_columns, multiselect=True)
+        analysis_numeric_fields_histogram: gr.Dropdown(label="Select fields", choices=numeric_columns, multiselect=True),
+        analysis_numeric_fields_boxplot: gr.Dropdown(label="Select numeric variable", choices=numeric_columns, visible=False),
+        analysis_string_fields_boxplot: gr.Dropdown(label="Select category group", choices=string_columns, visible=False),
     }
+
+def submit_draw(filtered_dataset: pd.DataFrame, analysis_boxplot_choose: str, group_col: str, num_col: str):
+    if analysis_boxplot_choose:
+        if analysis_boxplot_choose == "For category and numeric variable" and group_col and num_col:
+            sns.boxplot(x=group_col, y=num_col, data=filtered_dataset)
+            plt.xlabel(f"Category - {group_col}")
+        elif analysis_boxplot_choose == "For numeric variable" and num_col:
+            sns.boxplot(data=filtered_dataset[num_col])
+        else:
+            return {analysis_boxplots: gr.Image(None, label="Boxplot", visible=False, elem_id="boxp")}
+        
+        plt.title(f"Boxplot - {analysis_boxplot_choose}")
+        plt.ylabel(f"Numeric value - {num_col}")
+        plt.tight_layout()
+        plt.savefig("Boxplot_TMP.png")
+
+        return {analysis_boxplots: gr.Image("Boxplot_TMP.png", label="Boxplot", visible=True, elem_id="boxp")}
+    else:
+        return {analysis_boxplots: gr.Image(None, label="Boxplot", visible=False, elem_id="boxp")}
+
 
 def turn_configuration(source_name: str):
     dataset_box_choices = dataset_box_visible = None
@@ -330,6 +358,10 @@ def turn_details(dataset: pd.DataFrame):
         filter_result: gr.DataFrame(None) if IS_DATASET_NULL else gr.DataFrame(label="Result: ", value=pd.DataFrame(dataset), interactive=1),
         analysis_describe: gr.DataFrame(visible=False),
         analysis_panel: gr.Row(visible=False),
+        analysis_boxplot_radio: gr.Radio(label="Select type of boxplots:", value=None, choices=["For category and numeric variable", "For numeric variable"]),
+        analysis_string_fields_boxplot: gr.Dropdown(label="Select category group:", value=None, choices=[], visible=False),
+        analysis_numeric_fields_boxplot: gr.Dropdown(label="Select numeric variable:", value=None, choices=[], visible=False),
+        analysis_boxplots: gr.Image(None, label="Boxplot", visible=False),
 
         export_info: gr.Text(visible=False),
         export_method: gr.Radio(label="Do you want to export the data with a generator?", value=None, choices=read_with_gen, visible=False),
@@ -389,13 +421,25 @@ def turn_histograms(filtered_dataset: pd.DataFrame, analysis_numeric_fields: lis
         plt.tight_layout(pad=2.0)
         plt.savefig("Histogram_TMP.png")
 
-        return {
-            analysis_histograms: gr.Image("Histogram_TMP.png", label="Plot", visible=True, elem_id="hist")
-        }
+        return {analysis_histograms: gr.Image("Histogram_TMP.png", label="Plot", visible=True, elem_id="hist")}
     else:
         return {analysis_histograms: gr.Image(None, label="Plot", visible=False, elem_id="hist")}
 
-global_css = '#hist{display: flex; justify-content: center} #hist img{width: 50vw}'
+def turn_boxplots_conf(analysis_boxplot_choose: str):
+    if analysis_boxplot_choose:
+        if analysis_boxplot_choose == "For category and numeric variable":
+            FOR_SELECTED = True
+        elif analysis_boxplot_choose == "For numeric variable":
+            FOR_SELECTED = False
+
+        return {
+            analysis_string_fields_boxplot: gr.Dropdown(visible=FOR_SELECTED),
+            analysis_numeric_fields_boxplot: gr.Dropdown(visible=True),
+            analysis_boxplots: gr.Image(None, label="Boxplot", visible=False, elem_id="boxp")
+        }
+
+
+global_css = '#hist,#boxp{display: flex; justify-content: center} #hist img,#boxp img{width: 50vw}'
 if __name__ == "__main__":
     with gr.Blocks(title="Dataset Converter", css=global_css) as my_app:
         error_box = gr.Textbox(label="Error", visible=False)
@@ -482,7 +526,11 @@ if __name__ == "__main__":
                                 analysis_numeric_fields_histogram = gr.Dropdown(label="Select fields", choices=[], multiselect=True)
                                 analysis_histograms = gr.Image(label="Plot", visible=False)
                             with gr.TabItem("Boxplots"):
-                                """"""
+                                analysis_boxplot_radio = gr.Radio(label="Select type of boxplots:", choices=["For category and numeric variable", "For numeric variable"])
+                                analysis_string_fields_boxplot = gr.Dropdown(label="Select category group:", choices=[], visible=False)
+                                analysis_numeric_fields_boxplot = gr.Dropdown(label="Select numeric variable:", choices=[], visible=False)
+                                analysis_draw_btn = gr.Button("Generate boxplot")
+                                analysis_boxplots = gr.Image(label="Boxplot", visible=False)
 
         ### On-click 'Dataset' section ###
         submit_gen_btn.click(
@@ -526,7 +574,13 @@ if __name__ == "__main__":
         start_analysis_btn.click(
             submit_analysis,
             [filter_result],
-            [analysis_describe, analysis_panel, analysis_numeric_fields_correlation, analysis_numeric_fields_histogram]
+            [analysis_describe, analysis_panel, analysis_numeric_fields_correlation, analysis_numeric_fields_histogram, analysis_numeric_fields_boxplot, analysis_string_fields_boxplot]
+        )
+
+        analysis_draw_btn.click(
+            submit_draw,
+            [filter_result, analysis_boxplot_radio, analysis_string_fields_boxplot, analysis_numeric_fields_boxplot],
+            [analysis_boxplots]
         )
 
         ### On-change 'Dataset' section ###
@@ -545,7 +599,7 @@ if __name__ == "__main__":
         result_box.change(
             turn_details,
             [result_box],
-            [error_box, DF_status_before, DF_status_after, SA_status_before, SA_status_after, filter_fields, filter_dtype, filter_value, numeric_filter, source_selector, extractor_position, extractor_quantity, submit_sampling_btn, export_info, export_method, export_format, submit_export_btn, filter_result, analysis_describe, analysis_panel]
+            [error_box, DF_status_before, DF_status_after, SA_status_before, SA_status_after, filter_fields, filter_dtype, filter_value, numeric_filter, source_selector, extractor_position, extractor_quantity, submit_sampling_btn, export_info, export_method, export_format, submit_export_btn, filter_result, analysis_describe, analysis_panel, analysis_boxplot_radio, analysis_string_fields_boxplot, analysis_numeric_fields_boxplot, analysis_boxplots]
         )
 
         ### On-change 'Details & Filtering' section ###
@@ -578,6 +632,12 @@ if __name__ == "__main__":
             turn_histograms,
             [filter_result, analysis_numeric_fields_histogram],
             [analysis_histograms]
+        )
+
+        analysis_boxplot_radio.change(
+            turn_boxplots_conf,
+            [analysis_boxplot_radio],
+            [analysis_string_fields_boxplot, analysis_numeric_fields_boxplot, analysis_boxplots]
         )
 
     my_app.launch()
