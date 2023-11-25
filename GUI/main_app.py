@@ -239,6 +239,7 @@ def submit_analysis(filtered_dataset: pd.DataFrame):
 
 def submit_draw(filtered_dataset: pd.DataFrame, analysis_boxplot_choose: str, group_col: str, num_col: str):
     if analysis_boxplot_choose:
+        plt.figure()
         if analysis_boxplot_choose == "For category and numeric variable" and group_col and num_col:
             sns.boxplot(x=group_col, y=num_col, data=filtered_dataset)
             plt.xlabel(f"Category - {group_col}")
@@ -356,12 +357,6 @@ def turn_details(dataset: pd.DataFrame):
         submit_sampling_btn: gr.Button("Extract slice of samples", visible=False),
         
         filter_result: gr.DataFrame(None) if IS_DATASET_NULL else gr.DataFrame(label="Result: ", value=pd.DataFrame(dataset), interactive=1),
-        analysis_describe: gr.DataFrame(visible=False),
-        analysis_panel: gr.Row(visible=False),
-        analysis_boxplot_radio: gr.Radio(label="Select type of boxplots:", value=None, choices=["For category and numeric variable", "For numeric variable"]),
-        analysis_string_fields_boxplot: gr.Dropdown(label="Select category group:", value=None, choices=[], visible=False),
-        analysis_numeric_fields_boxplot: gr.Dropdown(label="Select numeric variable:", value=None, choices=[], visible=False),
-        analysis_boxplots: gr.Image(None, label="Boxplot", visible=False),
 
         export_info: gr.Text(visible=False),
         export_method: gr.Radio(label="Do you want to export the data with a generator?", value=None, choices=read_with_gen, visible=False),
@@ -386,57 +381,77 @@ def turn_export_preparation(export_method_by_gen: bool):
         else:
             return {export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=exports[0], choices=exports, visible=True)}
     
+def turn_analysis():
+    return {
+        analysis_describe: gr.DataFrame(visible=False),
+        analysis_panel: gr.Row(visible=False),
+
+        analysis_numeric_fields_correlation: gr.Dropdown(label="Select fields", value=[], choices=[], multiselect=True),
+        analysis_correlations: gr.DataFrame(None, visible=False),
+
+        analysis_numeric_fields_histogram: gr.Dropdown(label="Select fields", value=[], choices=[], multiselect=True),
+        analysis_histograms: gr.Image(None, label="Plot", visible=False, elem_id="hist"),
+
+        analysis_boxplot_radio: gr.Radio(label="Select type of boxplots:", value=None, choices=["For category and numeric variable", "For numeric variable"]),
+        analysis_string_fields_boxplot: gr.Dropdown(label="Select category group:", value="", choices=[""], visible=False),
+        analysis_numeric_fields_boxplot: gr.Dropdown(label="Select numeric variable:", value="", choices=[""], visible=False),
+        analysis_boxplots: gr.Image(None, label="Boxplot", visible=False, elem_id="boxp")
+    }
+
 def turn_correlations(filtered_dataset: pd.DataFrame, analysis_numeric_fields: list[str]):
-    if len(analysis_numeric_fields) > 1:
-        return {
-            analysis_correlations: gr.DataFrame(
-                label="Correlations between " + str(analysis_numeric_fields), 
-                value=filtered_dataset[analysis_numeric_fields].corr().reset_index(), 
-                visible=True
-            )
-        }
-    else:
-        return {analysis_correlations: gr.DataFrame(label="",value=pd.DataFrame(None), visible=False)}
+    if analysis_numeric_fields is not None:
+        if len(analysis_numeric_fields) > 1:
+            return {
+                analysis_correlations: gr.DataFrame(
+                    label="Correlations between " + str(analysis_numeric_fields), 
+                    value=filtered_dataset[analysis_numeric_fields].corr().reset_index(), 
+                    visible=True
+                )
+            }
+    
+    return {analysis_correlations: gr.DataFrame(label="",value=pd.DataFrame(None), visible=False)}
 
 def turn_histograms(filtered_dataset: pd.DataFrame, analysis_numeric_fields: list[str]):
-    if len(analysis_numeric_fields) > 0:
-        hist_per_row = math.ceil(math.sqrt(len(analysis_numeric_fields)))
-        hist_per_col = math.ceil(len(analysis_numeric_fields)/hist_per_row)
-        
-        if len(analysis_numeric_fields) > 1:
-            fig, axes = plt.subplots(hist_per_col,hist_per_row)
-            axes = axes.ravel()
-            for title, ax in zip(analysis_numeric_fields, axes):
-                ax.hist(filtered_dataset[title])
+    if analysis_numeric_fields is not None:
+        if len(analysis_numeric_fields) > 0:
+            plt.figure()
+            hist_per_row = math.ceil(math.sqrt(len(analysis_numeric_fields)))
+            hist_per_col = math.ceil(len(analysis_numeric_fields)/hist_per_row)
+            
+            if len(analysis_numeric_fields) > 1:
+                fig, axes = plt.subplots(hist_per_col,hist_per_row)
+                axes = axes.ravel()
+                for title, ax in zip(analysis_numeric_fields, axes):
+                    ax.hist(filtered_dataset[title])
 
-                ax.set_title(f"Histogram - {title}")
-                ax.set_xlabel("Value")
-                ax.set_ylabel("Frequency")
-        else:
-            filtered_dataset[analysis_numeric_fields].hist()
-            plt.title(f"Histogram - {analysis_numeric_fields[0]}")
-            plt.xlabel("Value")
-            plt.ylabel("Frequency")
+                    ax.set_title(f"Histogram - {title}")
+                    ax.set_xlabel("Value")
+                    ax.set_ylabel("Frequency")
+            else:
+                filtered_dataset[analysis_numeric_fields].hist()
+                plt.title(f"Histogram - {analysis_numeric_fields[0]}")
+                plt.xlabel("Value")
+                plt.ylabel("Frequency")
 
-        plt.tight_layout(pad=2.0)
-        plt.savefig("Histogram_TMP.png")
+            plt.tight_layout(pad=2.0)
+            plt.savefig("Histogram_TMP.png")
 
-        return {analysis_histograms: gr.Image("Histogram_TMP.png", label="Plot", visible=True, elem_id="hist")}
-    else:
-        return {analysis_histograms: gr.Image(None, label="Plot", visible=False, elem_id="hist")}
+            return {analysis_histograms: gr.Image("Histogram_TMP.png", label="Plot", visible=True, elem_id="hist")}
+    return {analysis_histograms: gr.Image(None, label="Plot", visible=False, elem_id="hist")}
 
 def turn_boxplots_conf(analysis_boxplot_choose: str):
+    FOR_SELECTED = False
     if analysis_boxplot_choose:
         if analysis_boxplot_choose == "For category and numeric variable":
             FOR_SELECTED = True
         elif analysis_boxplot_choose == "For numeric variable":
             FOR_SELECTED = False
 
-        return {
-            analysis_string_fields_boxplot: gr.Dropdown(visible=FOR_SELECTED),
-            analysis_numeric_fields_boxplot: gr.Dropdown(visible=True),
-            analysis_boxplots: gr.Image(None, label="Boxplot", visible=False, elem_id="boxp")
-        }
+    return {
+        analysis_string_fields_boxplot: gr.Dropdown(visible=(analysis_boxplot_choose is not None and FOR_SELECTED)),
+        analysis_numeric_fields_boxplot: gr.Dropdown(visible=(analysis_boxplot_choose is not None)),
+        analysis_boxplots: gr.Image(None, label="Boxplot", visible=False, elem_id="boxp")
+    }
 
 
 global_css = '#hist,#boxp{display: flex; justify-content: center} #hist img,#boxp img{width: 50vw}'
@@ -524,14 +539,14 @@ if __name__ == "__main__":
                                 analysis_correlations = gr.DataFrame(visible=False)
                             with gr.TabItem("Histograms"):
                                 analysis_numeric_fields_histogram = gr.Dropdown(label="Select fields", choices=[], multiselect=True)
-                                analysis_histograms = gr.Image(label="Plot", visible=False)
+                                analysis_histograms = gr.Image(label="Plot", visible=False, elem_id="hist")
                             with gr.TabItem("Boxplots"):
                                 analysis_boxplot_radio = gr.Radio(label="Select type of boxplots:", choices=["For category and numeric variable", "For numeric variable"])
                                 analysis_string_fields_boxplot = gr.Dropdown(label="Select category group:", choices=[], visible=False)
                                 analysis_numeric_fields_boxplot = gr.Dropdown(label="Select numeric variable:", choices=[], visible=False)
                                 analysis_draw_btn = gr.Button("Generate boxplot")
-                                analysis_boxplots = gr.Image(label="Boxplot", visible=False)
-
+                                analysis_boxplots = gr.Image(label="Boxplot", visible=False, elem_id="boxp")
+        
         ### On-click 'Dataset' section ###
         submit_gen_btn.click(
             submit_gen,
@@ -599,7 +614,7 @@ if __name__ == "__main__":
         result_box.change(
             turn_details,
             [result_box],
-            [error_box, DF_status_before, DF_status_after, SA_status_before, SA_status_after, filter_fields, filter_dtype, filter_value, numeric_filter, source_selector, extractor_position, extractor_quantity, submit_sampling_btn, export_info, export_method, export_format, submit_export_btn, filter_result, analysis_describe, analysis_panel, analysis_boxplot_radio, analysis_string_fields_boxplot, analysis_numeric_fields_boxplot, analysis_boxplots]
+            [error_box, DF_status_before, DF_status_after, SA_status_before, SA_status_after, filter_fields, filter_dtype, filter_value, numeric_filter, source_selector, extractor_position, extractor_quantity, submit_sampling_btn, export_info, export_method, export_format, submit_export_btn, filter_result]
         )
 
         ### On-change 'Details & Filtering' section ###
@@ -613,6 +628,13 @@ if __name__ == "__main__":
             turn_extraction,
             [filter_result, source_selector],
             [extractor_position, extractor_quantity, submit_sampling_btn]
+        )
+
+        filter_result.change(
+            turn_analysis,
+            [], [analysis_describe, analysis_panel, analysis_boxplot_radio, analysis_numeric_fields_correlation, analysis_correlations,
+             analysis_numeric_fields_histogram, analysis_histograms, 
+             analysis_boxplot_radio, analysis_string_fields_boxplot, analysis_numeric_fields_boxplot, analysis_boxplots]
         )
 
         export_method.change(
