@@ -101,7 +101,11 @@ class DataManager(object):
             TYPE_VALIDATION = True
 
         if NAME_VALIDATION and VALUE_VALIDATION and TYPE_VALIDATION:
-            result_df = self.dataset[self.dataset[field_title].isin(field_values)]
+            searching_pattern = (
+                "|".join(field_values)
+                .replace("*", ".*")
+            )
+            result_df = self.dataset[self.dataset[field_title].str.contains(searching_pattern, regex=True)]
         else:
             raise Exception("Program did not pass the category query validation!")
         

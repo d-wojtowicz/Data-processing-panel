@@ -348,7 +348,7 @@ def turn_details(dataset: pd.DataFrame):
 
         filter_fields: gr.Dropdown(label="Select Field", value=filter_fields_value, choices=filter_fields_choices),
         filter_dtype: gr.Radio(label="Filtering by", choices=["Str", "Int", "Float"], value="Str"),
-        filter_value: gr.Textbox(label="Enter value (e.g. 'a'; 'a,b,c'; '2,5,10'; '3.14,1.618')", value=""),
+        filter_value: gr.Textbox(label="Enter value", value=""),
         numeric_filter: gr.Radio(label="Select comparision mark (Only for numeric filter!)", value=comparision_marks[2], choices=comparision_marks, visible=False),
                                 
         source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", value=False, visible=False),
@@ -365,7 +365,36 @@ def turn_details(dataset: pd.DataFrame):
     }
 
 def turn_comparision(dtype: str):
-    return {numeric_filter: gr.Radio(label="Select comparision mark (Only for numeric filter!)", value=comparision_marks[2], choices=comparision_marks, visible=(dtype != "Str"))}
+    if dtype == "Str":
+        instruction = """
+                        <ul>
+                            <h3 style='text-align: center'>Search masks examples for string (without quotes): </h3>
+                            <li>'a' - Returns records containing the character/word 'a'</li>
+                            <li>'aa,bb,cb' - Returns records containing the characters/words 'aa' or 'bb' or 'cc'</li>
+                            <li>'a..d' - Returns records containing the words with unknown characters (number of dots = number of unknown chars inplace): e.g.: acid</li>
+                            <li>'p*n' - Returns records containing the words with undefined number of unknown characters inplace of *: e.g.: python</li>
+                        </ul>
+                    """
+    elif dtype == "Int":
+        instruction = """
+                        <ul>
+                            <h3 style='text-align: center'>Search masks examples for int (without quotes): </h3>
+                            <li>'3' - Uses records containing the number 3</li>
+                            <li>'3,4,9,11' - Uses records containing the number 3 or 4 or 9 or 11</li>
+                        </ul>
+                    """
+    elif dtype == "Float":
+        instruction = """
+                        <ul>
+                            <h3 style='text-align: center'>Search masks examples for float (without quotes): </h3>
+                            <li>'3.12' - Uses records containing the number 3.12</li>
+                            <li>'3.14,1.618,2.0' - Uses records containing the number 3.14 or 1.618 or 2.0</li>
+                        </ul>
+                    """
+    return {
+        filter_info: gr.HTML(instruction),
+        numeric_filter: gr.Radio(label="Select comparision mark (Only for numeric filter!)", value=comparision_marks[2], choices=comparision_marks, visible=(dtype != "Str"))
+    }
 
 def turn_extraction(filtered_dataset: pd.DataFrame, is_filtered: bool):
     return {
@@ -502,8 +531,17 @@ if __name__ == "__main__":
                     with gr.Column(visible=False) as DF_status_after:
                         filter_fields = gr.Dropdown(label="Select Field", choices=[])
                         filter_dtype = gr.Radio(label="Filtering by", choices=["Str", "Int", "Float"], value="Str")
-
-                        filter_value = gr.Textbox(label="Enter value (e.g. 'a'; 'a,b,c'; '2,5,10'; '3.14,1.618')")
+                
+                        filter_info = gr.HTML("""
+                            <ul>
+                                <h3 style='text-align: center'>Search masks examples (without quotes): </h3>
+                                <li>'a' - Returns records containing the character/word 'a'</li>
+                                <li>'aa,bb,cb' - Returns records containing the characters/words 'aa' and 'bb' and 'cc'</li>
+                                <li>'a..d' - Returns records containing the words with unknown characters (number of dots = number of unknown chars inplace): e.g.: acid</li>
+                                <li>'p*n' - Returns records containing the words with undefined number of unknown characters inplace of *: e.g.: python</li>
+                            </ul>
+                        """)
+                        filter_value = gr.Textbox(label="Enter value")
                         numeric_filter = gr.Radio(label="Select comparision mark (Only for numeric filter!)", value=comparision_marks[2], choices=comparision_marks, visible=False)
                         source_selector = gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=False)
                         
@@ -621,7 +659,7 @@ if __name__ == "__main__":
         filter_dtype.change(
             turn_comparision,
             [filter_dtype],
-            [numeric_filter]
+            [filter_info, numeric_filter]
         )
 
         source_selector.change(
