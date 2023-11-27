@@ -43,7 +43,7 @@ class DataManager(object):
 
         return result_df
     
-    def get_df_by_numeric(self, field_title: str, field_value: Union[int, float], condition: str) -> pd.DataFrame:
+    def get_df_by_numeric(self, field_title: str, field_value: set[Union[int, float]], condition: str) -> pd.DataFrame:
         result_df = pd.DataFrame()
         NAME_VALIDATION, VALUE_VALIDATION, TYPE_VALIDATION, CONDITION_VALIDATION = False, False, False, False
 
@@ -101,7 +101,11 @@ class DataManager(object):
             TYPE_VALIDATION = True
 
         if NAME_VALIDATION and VALUE_VALIDATION and TYPE_VALIDATION:
-            result_df = self.dataset[self.dataset[field_title].isin(field_values)]
+            searching_pattern = (
+                "|".join(field_values)
+                .replace("*", ".*")
+            )
+            result_df = self.dataset[self.dataset[field_title].str.contains(searching_pattern, regex=True)]
         else:
             raise Exception("Program did not pass the category query validation!")
         

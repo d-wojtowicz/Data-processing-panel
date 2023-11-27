@@ -9,8 +9,8 @@ from variables.enumerators import read_from, read_by, reader_tester
 
 
 if __name__ == "__main__":
-    # Select the Reader tester performance (SEABORN | SKLEARN | INDIVIDUAL)
-    SELECTED_TESTS = reader_tester.SKLEARN
+    # Select the Reader tester performance (SEABORN | SKLEARN)
+    SELECTED_TESTS = reader_tester.SEABORN
 
     match SELECTED_TESTS:
         case reader_tester.SEABORN:
@@ -19,7 +19,7 @@ if __name__ == "__main__":
             readed_df = DataSeabornReader.dataset
 
             DatasetManagerSeaborn = DataManager(readed_df)
-            queried_df = DatasetManagerSeaborn.get_df_by_numeric('depth', 64.5, '>=')
+            queried_df = DatasetManagerSeaborn.get_df_by_numeric('depth', [64.5], '>=')
             category_queried_df = DatasetManagerSeaborn.get_df_by_category('cut', ['Good', 'Fair'])
 
             print("SEABORN TESTS: ")
@@ -35,15 +35,12 @@ if __name__ == "__main__":
             readed_df2 = DataSklearnReader.dataset
 
             DatasetManagerSklearn = DataManager(readed_df2)
-            queried_df2 = DatasetManagerSklearn.get_df_by_numeric('sex', 0, '>=')
+            queried_df2 = DatasetManagerSklearn.get_df_by_numeric('sex', [0], '>=')
 
             print("SKLEARN TESTS: ")
             print(readed_df2)
             print("\n")
             print(queried_df2)
     
-        case reader_tester.INDIVIDUAL:
-                """"""
-
         case _:
             raise Exception("You selected wrong tester enumerator (Variable 'SELECTED_TESTS' at the top of program).")
