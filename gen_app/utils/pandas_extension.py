@@ -43,7 +43,7 @@ class DataManager(object):
 
         return result_df
     
-    def get_df_by_numeric(self, field_title: str, field_value: Union[int, float], condition: str) -> pd.DataFrame:
+    def get_df_by_numeric(self, field_title: str, field_value: set[Union[int, float]], condition: str) -> pd.DataFrame:
         result_df = pd.DataFrame()
         NAME_VALIDATION, VALUE_VALIDATION, TYPE_VALIDATION, CONDITION_VALIDATION = False, False, False, False
 

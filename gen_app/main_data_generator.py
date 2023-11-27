@@ -17,9 +17,11 @@ if __name__ == "__main__":
     gen_small = DataGenerator(10, 25)
     dataMakingByGenMeasure = calc.fullMeasure(gen_small.generate_dataframe_by_gen) # Turned on time & storage measurement of Generating Dataframe by generator
 
+    print("CREATED THE GENERATOR OF DATA BY YIELD:")
     # Creating Generators 
     gen_small_created = dataMakingByGenMeasure() # e.g. Generator creating objects (based on the specified pattern)
 
+    print("GENERATOR MEASUREMENTS (Transforming from GEN to OBJ and from OBJ to GEN):")
     # Transforming from GEN to OBJ of Dataframe (From prepared generators)
     df_small_obj = dfMakingMeasure(gen_small_created)
 
@@ -34,6 +36,7 @@ if __name__ == "__main__":
     gen_small = DataGeneratorObj(10, 25)
     dataMakingByObjMeasure = calc.fullMeasure(gen_small.generate_dataframe_by_obj) # Turned on time & storage measurement of Generating Dataframe by objects
 
+    print("CREATED THE GENERATOR OF DATA BY OBJECTS:")
     # Creating by Objects (using str, int, pd.Series & pd.DataFrame)
     df_small_obj2 = dataMakingByObjMeasure()
 
