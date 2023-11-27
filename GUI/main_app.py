@@ -1,13 +1,4 @@
 #TODO: Column deleting, Including sorting to be remembered during export
-#TODO: !!!Graph panel? Histogram, dot, line & bar chart, Statistical Analysis: std, med, avg etc.
-
-# OTHER:
-#TODO: Main_performance apply OOP changes
-#BUG: Invisible field appears in Individual Import on the clicked submit configuration button
-#TODO: Requirements UPDATE!!!
-
-# ADDITIONAL:
-#TODO: Facade - response, boilerplate
 
 """
 NOTES:
