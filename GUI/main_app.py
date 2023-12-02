@@ -23,6 +23,7 @@ check through iterations of a loop each item generated on the fly to see if it m
 import sys, os
 import io, base64
 
+from datetime import datetime
 from types import GeneratorType
 from typing import Union
 from enum import Enum
@@ -105,19 +106,61 @@ def value_handler(source_name: str, df_name: str, read_with_gen: bool = True, lo
 
     return result_ds
 
-def submit_gen(col_number: int, row_number: int):
+def reformat_reader_data_to_log(log_records: str, source_name: str, df_name: str, read_with_gen: bool = True, location_method: str = read_from.TOP, structure_method: str = read_by.ROWS, limit: int = 1, col_number: int=1) -> str:
+    elem_content = "<h3>DATASET READER - " + datetime.now().strftime("[%Y-%m-%d, %H:%M:%S], ")
+    if source_name in ["Seaborn", "Sklearn"]:
+        elem_content += (
+            "(" + source_name           + ", " + df_name        + "):</h3>" +
+            "<ul><li>READ_BY_GEN: "     + str(read_with_gen)    + "</li>" +
+            "<li>READ_FROM: "           + location_method       + "</li>" +
+            "<li>READ_BY: "             + structure_method      + "</li>" +
+            "<li>NUM_OF_ROWS: "         + str(limit)            + "</li>" +
+            "<li>TIME: "                + "0s"                  + "</li></ul>"
+        )   
+    elif source_name == "Generated":
+        elem_content += (
+            "(" + source_name                           + "):</h3>" +
+            "<ul><li>NUM_OF_COLS: " + str(col_number)   + "</li>" + 
+            "<li>NUM_OF_ROWS: "     + str(limit)        + "</li>" +
+            "<li>TIME: "            + "0s"              + "</li></ul>"
+        )
+    elif source_name == "Individual":
+        global individual_dataset_path
+        df_name = os.path.basename(individual_dataset_path)
+        elem_content += (
+            "(" + source_name       + ", " + df_name        + "):</h3>" +
+            "<ul><li>READ_BY_GEN: " + str(read_with_gen)    + "</li>" +
+            "<li>TIME: "            + "0s"                  + "</li></ul>"
+        )
+    else:
+        raise Exception("Wrong source!")
+    
+    new_elem = "<tr><td>" + elem_content + "</td></tr>"
+
+    table_content_start_index = log_records.find(">")+1
+    start_of_table = log_records[:table_content_start_index]
+    end_of_table = log_records[table_content_start_index:]
+
+    return start_of_table + new_elem + end_of_table
+        
+
+
+def submit_gen(col_number: int, row_number: int, log_record: str):
     try:
         dataGen = DataGenerator(int(col_number), int(row_number))
 
         global generated_dataset
         generated_dataset = dataGen.generate_dataframe_by_gen()
         generated_dataset_to_df = value_handler(source_name="Generated", df_name="Generated", read_with_gen=True)
+        log_info = reformat_reader_data_to_log(log_record, source_name="Generated", df_name="Generated", limit=row_number, col_number=col_number)
         return {
+            dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
             gen_info_text: gr.Text("The dataset was successfully generated!", visible=True),
             output_conf_col: gr.Column(visible=False),
             output_result_col: gr.Column(visible=True),
             individual_dataset_col: gr.Column(visible=False),
-            result_box: gr.DataFrame(label="Result: ", value=pd.DataFrame(gen_to_df(generated_dataset_to_df)), interactive=1)
+            result_box: gr.DataFrame(label="Result: ", value=pd.DataFrame(gen_to_df(generated_dataset_to_df)), interactive=1),
+            log_records: gr.HTML(log_info)
         }
     except Exception as e:
         return {error_box: gr.Textbox(value=str(e), visible=True)}
@@ -144,11 +187,13 @@ def submit_file(file_reader):
     else:
         return {error_box: gr.Textbox(value="First you have to select the file!", visible=True)}
 
-def submit_conf(source_name: str, df_name: str, read_with_gen: bool, location_method: str, structure_method: str, limit: str):    
+def submit_conf(source_name: str, df_name: str, read_with_gen: bool, location_method: str, structure_method: str, limit: str, log_record: str):    
     dataset = value_handler(source_name, df_name, read_with_gen, location_method, structure_method, limit)
+    log_info = reformat_reader_data_to_log(log_record, source_name, df_name, read_with_gen, location_method, structure_method, limit)
     return {
         output_result_col: gr.Column(visible=True),
-        result_box: gr.DataFrame(label="Result: ", value=pd.DataFrame(dataset), interactive=1)
+        result_box: gr.DataFrame(label="Result: ", value=pd.DataFrame(dataset), interactive=1),
+        log_records: gr.HTML(log_info)
     }
 
 def submit_filter(dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_name: str, col_dtype: str, filter_value: Union[int, str, float], numeric_comparator: str, operate_on_filtered: bool=False):
@@ -248,6 +293,8 @@ def submit_draw(filtered_dataset: pd.DataFrame, analysis_boxplot_choose: str, gr
     else:
         return {analysis_boxplots: gr.Image(None, label="Boxplot", visible=False, elem_id="boxp")}
 
+def submit_clear_log():
+    return {log_records: gr.HTML("<table style='width: 100%; border: 1px solid grey; text-align: center; padding: 10px'></table>")}
 
 def turn_configuration(source_name: str):
     dataset_box_choices = dataset_box_visible = None
@@ -576,11 +623,19 @@ if __name__ == "__main__":
                                 analysis_draw_btn = gr.Button("Generate boxplot")
                                 analysis_boxplots = gr.Image(label="Boxplot", visible=False, elem_id="boxp")
         
+            with gr.TabItem("Log"):
+                # Log panel
+                with gr.Column():
+                    logs_info = gr.Text(label="Info", value="This log records information about each key operation (i.e. data loading, filtering, exports, time measurements and all parameters) into history.")
+                    clear_log_btn = gr.Button("Clear log")
+                    with gr.Row():
+                        log_records = gr.HTML("<table style='width: 100%; border: 1px solid grey; text-align: center; padding: 10px'></table>")
+
         ### On-click 'Dataset' section ###
         submit_gen_btn.click(
             submit_gen,
-            [col_number, row_number],
-            [error_box, dataset_box, output_conf_col, gen_info_text, individual_dataset_col, output_result_col, result_box]
+            [col_number, row_number, log_records],
+            [error_box, dataset_box, output_conf_col, gen_info_text, individual_dataset_col, output_result_col, result_box, log_records]
         )
 
         submit_file_btn.click(
@@ -591,8 +646,8 @@ if __name__ == "__main__":
 
         submit_conf_btn.click(
             submit_conf,
-            [source_box, dataset_box, read_method_box, location_method_box, structure_method_box, limit_box],
-            [error_box, output_result_col, result_box]
+            [source_box, dataset_box, read_method_box, location_method_box, structure_method_box, limit_box, log_records],
+            [error_box, output_result_col, result_box, log_records]
         )
 
         ### On-click 'Details & Filtering' section ###
@@ -625,6 +680,12 @@ if __name__ == "__main__":
             submit_draw,
             [filter_result, analysis_boxplot_radio, analysis_string_fields_boxplot, analysis_numeric_fields_boxplot],
             [analysis_boxplots]
+        )
+
+        ### On-click 'Log' section ###
+        clear_log_btn.click(
+            submit_clear_log,
+            [], [log_records]
         )
 
         ### On-change 'Dataset' section ###
