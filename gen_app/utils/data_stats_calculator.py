@@ -1,5 +1,6 @@
 import time 
 import sys, os
+import tracemalloc
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 class calc:
@@ -29,4 +30,14 @@ class calc:
             result = obj(*args, **kwargs)
             print(f"{obj}: (Pojemność: {sys.getsizeof(result)} [bajtów])")
             return result
+        return wrapper
+    
+    @staticmethod
+    def traceSizeMeasure(obj):
+        def wrapper(*args, **kwargs):
+            tracemalloc.start()
+            result = obj(*args, **kwargs)
+            current, peak = tracemalloc.get_traced_memory()
+            tracemalloc.stop()
+            return result, current, peak
         return wrapper
