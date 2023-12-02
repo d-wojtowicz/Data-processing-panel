@@ -23,6 +23,7 @@ check through iterations of a loop each item generated on the fly to see if it m
 import sys, os
 import io, base64
 
+from datetime import datetime
 from types import GeneratorType
 from typing import Union
 from enum import Enum
@@ -37,7 +38,7 @@ from gen_app.source.data_reader import DataReader
 from gen_app.utils.data_generator_by_gen import DataGenerator
 from gen_app.utils.data_exporter import DataExporter
 from gen_app.utils.pandas_extension import DataManager, gen_to_df, df_to_gen
-
+from gen_app.utils.data_stats_calculator import calc
 from gen_app.variables.enumerators import read_by, read_from, reader_tester
 from gen_app.variables.lists import seaborn_libraries, sklearn_libraries, comparision_marks, gen_exports, exports, read_with_gen
 
@@ -92,32 +93,127 @@ def value_handler(source_name: str, df_name: str, read_with_gen: bool = True, lo
         df_name = "Individual"
     
     dataReader = DataReader(df_name, source_name, location_method, structure_method, row_count, by_gen=read_with_gen, dataset_for_generated=dataset)
-    result_ds = dataReader.read_data()
+    dataReaderMeasurements = calc.traceFullMeasure(dataReader.read_data)    
+    result_ds, time, curr_mem, peak_mem = dataReaderMeasurements()
 
     if source_name in ["Seaborn", "Sklearn"]:
         if structure_method == read_by.CHUNKS and read_with_gen == True:
-            return gen_to_df(result_ds)
+            return gen_to_df(result_ds), time, curr_mem, peak_mem
 
     if df_name == "Individual":
         if type(result_ds) == GeneratorType:
             if source_name.endswith((".txt", ".csv", ".json")):
-                return gen_to_df(result_ds)
+                return gen_to_df(result_ds), time, curr_mem, peak_mem
 
-    return result_ds
+    return result_ds, time, curr_mem, peak_mem
 
-def submit_gen(col_number: int, row_number: int):
+def reformat_reader_data_to_log(log_records: str, time: float, curr_mem: int, peak_mem: int, source_name: str, df_name: str, read_with_gen: bool = True, location_method: str = read_from.TOP, structure_method: str = read_by.ROWS, limit: int = 1, col_number: int=1) -> str:
+    elem_content = "<h3>DATASET READER - " + datetime.now().strftime("[%Y-%m-%d, %H:%M:%S], ")
+    if source_name in ["Seaborn", "Sklearn"]:
+        elem_content += (
+            "(" + source_name           + ", " + df_name        + "):</h3>" +
+            "<ul><li>READ_BY_GEN: "     + str(read_with_gen)    + "</li>" +
+            "<li>READ_FROM: "           + location_method       + "</li>" +
+            "<li>READ_BY: "             + structure_method      + "</li>" +
+            "<li>NUM_OF_ROWS: "         + str(limit)            + "</li>" +
+            "<li>TIME: "                + str(time)             + " [s]</li>" + 
+            "<li>ACTUAL USAGE OF MEM: " + str(curr_mem)         + " [B]</li>" +
+            "<li>MAX USAGE OF MEM: "    + str(peak_mem)         + " [B]</li></ul>"
+        )   
+    elif source_name == "Generated":
+        elem_content += (
+            "(" + source_name                               + "):</h3>" +
+            "<ul><li>NUM_OF_COLS: "     + str(col_number)   + "</li>" + 
+            "<li>NUM_OF_ROWS: "         + str(limit)        + "</li>" +
+            "<li>TIME: "                + str(time)         + " [s]</li>" + 
+            "<li>ACTUAL USAGE OF MEM: " + str(curr_mem)     + " [B]</li>" +
+            "<li>MAX USAGE OF MEM: "    + str(peak_mem)     + " [B]</li></ul>"
+        )
+    elif source_name == "Individual":
+        global individual_dataset_path
+        df_name = os.path.basename(individual_dataset_path)
+        elem_content += (
+            "(" + source_name           + ", " + df_name        + "):</h3>" +
+            "<ul><li>READ_BY_GEN: "     + str(read_with_gen)    + "</li>" +
+            "<li>TIME: "                + str(time)             + " [s]</li>" + 
+            "<li>ACTUAL USAGE OF MEM: " + str(curr_mem)         + " [B]</li>" +
+            "<li>MAX USAGE OF MEM: "    + str(peak_mem)         + " [B]</li></ul>"
+        )
+    else:
+        raise Exception("Wrong source!")
+    
+    new_elem = "<tr><td>" + elem_content + "</td></tr>"
+
+    table_content_start_index = log_records.find(">")+1
+    start_of_table = log_records[:table_content_start_index]
+    end_of_table = log_records[table_content_start_index:]
+
+    return start_of_table + new_elem + end_of_table
+
+def reformat_filter_data_to_log(log_records: str, time: float, curr_mem: int, peak_mem: int, col_name: str, col_dtype: str, filter_value: Union[int, str, float], numeric_comparator: str = "-", operate_on_filtered: bool=False):
+    if col_dtype == "Str":
+        numeric_comparator = "None"
+
+    if operate_on_filtered:
+        source_name = "Filtered dataset"
+    else:
+        source_name = "Original dataset"
+    
+    elem_content = (
+        "<h3>DATASET FILTER - " + datetime.now().strftime("[%Y-%m-%d, %H:%M:%S], ") +
+        "(" + source_name + "):</h3>" +
+        "<ul><li>BY COL_NAME: "         + col_name              + "</li>" +
+        "<li>COL_DTYPE: "               + col_dtype             + "</li>" +
+        "<li>FILTER BY: "               + str(filter_value)     + "</li>" +
+        "<li>COMPARATOR (ONLY IF NUM): "+ numeric_comparator    + "</li>" +
+        "<li>TIME: "                    + str(time)             + " [s]</li>" + 
+        "<li>ACTUAL USAGE OF MEM: "     + str(curr_mem)         + " [B]</li>" +
+        "<li>MAX USAGE OF MEM: "        + str(peak_mem)         + " [B]</li></ul>"
+    )   
+
+    new_elem = "<tr><td>" + elem_content + "</td></tr>"
+
+    table_content_start_index = log_records.find(">")+1
+    start_of_table = log_records[:table_content_start_index]
+    end_of_table = log_records[table_content_start_index:]
+
+    return start_of_table + new_elem + end_of_table
+
+def reformat_export_data_to_log(log_records: str, time: float, curr_mem: int, peak_mem: int, export_by_gen: bool, format: str) -> str:
+    elem_content = (
+        "<h3>DATASET EXPORT - " + datetime.now().strftime("[%Y-%m-%d, %H:%M:%S]:</h3>") +
+        "<ul><li>EXPORT_BY_GEN: "   + str(export_by_gen)+ "</li>" +
+        "<li>FORMAT: "              + format            + "</li>" +
+        "<li>TIME: "                + str(time)         + " [s]</li>" + 
+        "<li>ACTUAL USAGE OF MEM: " + str(curr_mem)     + " [B]</li>" +
+        "<li>MAX USAGE OF MEM: "    + str(peak_mem)     + " [B]</li></ul>"
+    )   
+    
+    new_elem = "<tr><td>" + elem_content + "</td></tr>"
+
+    table_content_start_index = log_records.find(">")+1
+    start_of_table = log_records[:table_content_start_index]
+    end_of_table = log_records[table_content_start_index:]
+
+    return start_of_table + new_elem + end_of_table
+
+def submit_gen(col_number: int, row_number: int, log_record: str):
     try:
         dataGen = DataGenerator(int(col_number), int(row_number))
 
         global generated_dataset
-        generated_dataset = dataGen.generate_dataframe_by_gen()
-        generated_dataset_to_df = value_handler(source_name="Generated", df_name="Generated", read_with_gen=True)
+        generate_dataset_measures = calc.traceFullMeasure(dataGen.generate_dataframe_by_gen)
+        generated_dataset, time, curr_mem, peak_mem = generate_dataset_measures()
+        generated_dataset_to_df, _, _, _ = value_handler(source_name="Generated", df_name="Generated", read_with_gen=True)
+        log_info = reformat_reader_data_to_log(log_record, time, curr_mem, peak_mem, source_name="Generated", df_name="Generated", limit=row_number, col_number=col_number)
         return {
+            dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
             gen_info_text: gr.Text("The dataset was successfully generated!", visible=True),
             output_conf_col: gr.Column(visible=False),
             output_result_col: gr.Column(visible=True),
             individual_dataset_col: gr.Column(visible=False),
-            result_box: gr.DataFrame(label="Result: ", value=pd.DataFrame(gen_to_df(generated_dataset_to_df)), interactive=1)
+            result_box: gr.DataFrame(label="Result: ", value=pd.DataFrame(gen_to_df(generated_dataset_to_df)), interactive=1),
+            log_records: gr.HTML(log_info)
         }
     except Exception as e:
         return {error_box: gr.Textbox(value=str(e), visible=True)}
@@ -144,14 +240,16 @@ def submit_file(file_reader):
     else:
         return {error_box: gr.Textbox(value="First you have to select the file!", visible=True)}
 
-def submit_conf(source_name: str, df_name: str, read_with_gen: bool, location_method: str, structure_method: str, limit: str):    
-    dataset = value_handler(source_name, df_name, read_with_gen, location_method, structure_method, limit)
+def submit_conf(source_name: str, df_name: str, read_with_gen: bool, location_method: str, structure_method: str, limit: str, log_record: str):    
+    dataset, time, curr_mem, peak_mem = value_handler(source_name, df_name, read_with_gen, location_method, structure_method, limit)
+    log_info = reformat_reader_data_to_log(log_record, time, curr_mem, peak_mem, source_name, df_name, read_with_gen, location_method, structure_method, limit)
     return {
         output_result_col: gr.Column(visible=True),
-        result_box: gr.DataFrame(label="Result: ", value=pd.DataFrame(dataset), interactive=1)
+        result_box: gr.DataFrame(label="Result: ", value=pd.DataFrame(dataset), interactive=1),
+        log_records: gr.HTML(log_info)
     }
 
-def submit_filter(dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_name: str, col_dtype: str, filter_value: Union[int, str, float], numeric_comparator: str, operate_on_filtered: bool=False):
+def submit_filter(log_record: str, dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_name: str, col_dtype: str, filter_value: Union[int, str, float], numeric_comparator: str, operate_on_filtered: bool=False):
     try:
         global dataManager
         if operate_on_filtered:
@@ -161,14 +259,18 @@ def submit_filter(dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_nam
         
         filtered_dataset = pd.DataFrame()
         if col_dtype == "Str":
-            filtered_dataset = dataManager.get_df_by_category(col_name, filter_value.split(","))
+            cat_filter_measure = calc.traceFullMeasure(dataManager.get_df_by_category)
+            filtered_dataset, time, curr_mem, peak_mem = cat_filter_measure(col_name, filter_value.split(","))
         elif col_dtype == "Int":
             filter_value = [int(elem) for elem in filter_value.split(",")]
-            filtered_dataset = dataManager.get_df_by_numeric(col_name, filter_value, numeric_comparator)
+            num_filter_measure = calc.traceFullMeasure(dataManager.get_df_by_numeric)
+            filtered_dataset, time, curr_mem, peak_mem = num_filter_measure(col_name, filter_value, numeric_comparator)
         elif col_dtype == "Float":
             filter_value = [float(elem) for elem in filter_value.split(",")]
-            filtered_dataset = dataManager.get_df_by_numeric(col_name, filter_value, numeric_comparator)
+            num_filter_measure = calc.traceFullMeasure(dataManager.get_df_by_numeric)
+            filtered_dataset, time, curr_mem, peak_mem = num_filter_measure(col_name, filter_value, numeric_comparator)
 
+        log_info = reformat_filter_data_to_log(log_record, time, curr_mem, peak_mem, col_name, col_dtype, filter_value, numeric_comparator, operate_on_filtered)
         return {
             filter_result: filtered_dataset, 
             source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=True),
@@ -176,7 +278,9 @@ def submit_filter(dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_nam
             export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=True),
             export_method: gr.Radio(label="Do you want to export the data with a generator?", value=read_with_gen[0], choices=read_with_gen, visible=True),
             export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=gen_exports[0], choices=gen_exports, visible=True),
-            submit_export_btn: gr.Button("Export Filtered Dataset", visible=True)
+            submit_export_btn: gr.Button("Export Filtered Dataset", visible=True),
+
+            log_records: gr.HTML(log_info)
         }
         
     except Exception as e:
@@ -195,7 +299,7 @@ def submit_sample(dataset: pd.DataFrame, read_from: Enum, number_of_records: int
     except Exception as e:
         return {error_box: gr.Textbox(value=str(e), visible=True)}
 
-def submit_export(filtered_dataset: pd.DataFrame, export_method_by_gen: bool, format: str) -> None:
+def submit_export(log_record: str, filtered_dataset: pd.DataFrame, export_method_by_gen: bool, format: str) -> None:
     if export_method_by_gen:
         filtered_gen = df_to_gen(filtered_dataset)
         dataExporter = DataExporter(filtered_gen, "Exported_by_gen")
@@ -203,17 +307,21 @@ def submit_export(filtered_dataset: pd.DataFrame, export_method_by_gen: bool, fo
         dataExporter = DataExporter(filtered_dataset, "Exported_by_df")
     match format:
         case "TXT":
-            dataExporter.export_to_txt()
+            exportData = calc.traceFullMeasure(dataExporter.export_to_txt)
         case "JSON":
-            dataExporter.export_to_json()
+            exportData = calc.traceFullMeasure(dataExporter.export_to_json)
         case "CSV":
-            dataExporter.export_to_csv()
+            exportData = calc.traceFullMeasure(dataExporter.export_to_csv)
         case "XLSX":
-            dataExporter.export_to_xlsx()
+            exportData = calc.traceFullMeasure(dataExporter.export_to_xlsx)
         case "PDF":
-            dataExporter.export_to_pdf()
+            exportData = calc.traceFullMeasure(dataExporter.export_to_pdf)
         case _:
             raise Exception("You selected a wrong format of the export file!")
+        
+    _, time, curr_mem, peak_mem = exportData()
+    log_info = reformat_export_data_to_log(log_record, time, curr_mem, peak_mem, export_method_by_gen, format)
+    return {log_records: gr.HTML(log_info)}
 
 def submit_analysis(filtered_dataset: pd.DataFrame):
     result = filtered_dataset.applymap(is_text)
@@ -248,6 +356,8 @@ def submit_draw(filtered_dataset: pd.DataFrame, analysis_boxplot_choose: str, gr
     else:
         return {analysis_boxplots: gr.Image(None, label="Boxplot", visible=False, elem_id="boxp")}
 
+def submit_clear_log():
+    return {log_records: gr.HTML("<table style='width: 100%; border: 1px solid grey; text-align: center; padding: 10px'></table>")}
 
 def turn_configuration(source_name: str):
     dataset_box_choices = dataset_box_visible = None
@@ -576,11 +686,19 @@ if __name__ == "__main__":
                                 analysis_draw_btn = gr.Button("Generate boxplot")
                                 analysis_boxplots = gr.Image(label="Boxplot", visible=False, elem_id="boxp")
         
+            with gr.TabItem("Log"):
+                # Log panel
+                with gr.Column():
+                    logs_info = gr.Text(label="Info", value="This log records information about each key operation (i.e. data loading, filtering, exports, time measurements and all parameters) into history.")
+                    clear_log_btn = gr.Button("Clear log")
+                    with gr.Row():
+                        log_records = gr.HTML("<table style='width: 100%; border: 1px solid grey; text-align: center; padding: 10px'></table>")
+
         ### On-click 'Dataset' section ###
         submit_gen_btn.click(
             submit_gen,
-            [col_number, row_number],
-            [error_box, dataset_box, output_conf_col, gen_info_text, individual_dataset_col, output_result_col, result_box]
+            [col_number, row_number, log_records],
+            [error_box, dataset_box, output_conf_col, gen_info_text, individual_dataset_col, output_result_col, result_box, log_records]
         )
 
         submit_file_btn.click(
@@ -591,8 +709,8 @@ if __name__ == "__main__":
 
         submit_conf_btn.click(
             submit_conf,
-            [source_box, dataset_box, read_method_box, location_method_box, structure_method_box, limit_box],
-            [error_box, output_result_col, result_box]
+            [source_box, dataset_box, read_method_box, location_method_box, structure_method_box, limit_box, log_records],
+            [error_box, output_result_col, result_box, log_records]
         )
 
         ### On-click 'Details & Filtering' section ###
@@ -604,14 +722,15 @@ if __name__ == "__main__":
 
         submit_filter_ds_btn.click(
             submit_filter,
-            [result_box, filter_result, filter_fields, filter_dtype, filter_value, numeric_filter, source_selector],
-            [error_box, filter_result, source_selector, 
+            [log_records, result_box, filter_result, filter_fields, filter_dtype, filter_value, numeric_filter, source_selector],
+            [log_records, error_box, filter_result, source_selector, 
              export_info, export_method, export_format, submit_export_btn]
         )
 
         submit_export_btn.click(
             submit_export,
-            [filter_result, export_method, export_format]
+            [log_records, filter_result, export_method, export_format],
+            [log_records]
         )
 
         ### On-click 'Statistical analysis' section ###
@@ -625,6 +744,12 @@ if __name__ == "__main__":
             submit_draw,
             [filter_result, analysis_boxplot_radio, analysis_string_fields_boxplot, analysis_numeric_fields_boxplot],
             [analysis_boxplots]
+        )
+
+        ### On-click 'Log' section ###
+        clear_log_btn.click(
+            submit_clear_log,
+            [], [log_records]
         )
 
         ### On-change 'Dataset' section ###
