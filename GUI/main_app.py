@@ -142,8 +142,49 @@ def reformat_reader_data_to_log(log_records: str, source_name: str, df_name: str
     end_of_table = log_records[table_content_start_index:]
 
     return start_of_table + new_elem + end_of_table
-        
 
+def reformat_filter_data_to_log(log_records: str, col_name: str, col_dtype: str, filter_value: Union[int, str, float], numeric_comparator: str = "-", operate_on_filtered: bool=False):
+    if col_dtype == "Str":
+        numeric_comparator = "None"
+
+    if operate_on_filtered:
+        source_name = "Filtered dataset"
+    else:
+        source_name = "Original dataset"
+    
+    elem_content = (
+        "<h3>DATASET FILTER - " + datetime.now().strftime("[%Y-%m-%d, %H:%M:%S], ") +
+        "(" + source_name + "):</h3>" +
+        "<ul><li>BY COL_NAME: "         + col_name              + "</li>" +
+        "<li>COL_DTYPE: "               + col_dtype             + "</li>" +
+        "<li>FILTER BY: "               + str(filter_value)     + "</li>" +
+        "<li>COMPARATOR (ONLY IF NUM): "+ numeric_comparator    + "</li>" +
+        "<li>TIME: "                    + "0s"                  + "</li></ul>"
+    )   
+
+    new_elem = "<tr><td>" + elem_content + "</td></tr>"
+
+    table_content_start_index = log_records.find(">")+1
+    start_of_table = log_records[:table_content_start_index]
+    end_of_table = log_records[table_content_start_index:]
+
+    return start_of_table + new_elem + end_of_table
+
+def reformat_export_data_to_log(log_records: str, export_by_gen: bool, format: str) -> str:
+    elem_content = (
+        "<h3>DATASET EXPORT - " + datetime.now().strftime("[%Y-%m-%d, %H:%M:%S]:</h3>") +
+        "<ul><li>EXPORT_BY_GEN: "   + str(export_by_gen)+ "</li>" +
+        "<li>FORMAT: "              + format            + "</li>" +
+        "<li>TIME: "                + "0s"              + "</li></ul>"
+    )   
+    
+    new_elem = "<tr><td>" + elem_content + "</td></tr>"
+
+    table_content_start_index = log_records.find(">")+1
+    start_of_table = log_records[:table_content_start_index]
+    end_of_table = log_records[table_content_start_index:]
+
+    return start_of_table + new_elem + end_of_table
 
 def submit_gen(col_number: int, row_number: int, log_record: str):
     try:
@@ -196,7 +237,7 @@ def submit_conf(source_name: str, df_name: str, read_with_gen: bool, location_me
         log_records: gr.HTML(log_info)
     }
 
-def submit_filter(dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_name: str, col_dtype: str, filter_value: Union[int, str, float], numeric_comparator: str, operate_on_filtered: bool=False):
+def submit_filter(log_record: str, dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_name: str, col_dtype: str, filter_value: Union[int, str, float], numeric_comparator: str, operate_on_filtered: bool=False):
     try:
         global dataManager
         if operate_on_filtered:
@@ -214,6 +255,7 @@ def submit_filter(dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_nam
             filter_value = [float(elem) for elem in filter_value.split(",")]
             filtered_dataset = dataManager.get_df_by_numeric(col_name, filter_value, numeric_comparator)
 
+        log_info = reformat_filter_data_to_log(log_record, col_name, col_dtype, filter_value, numeric_comparator, operate_on_filtered)
         return {
             filter_result: filtered_dataset, 
             source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=True),
@@ -221,7 +263,9 @@ def submit_filter(dataset: pd.DataFrame, filtered_dataset: pd.DataFrame, col_nam
             export_info: gr.Text("The dataset was successfully filtered. Select the file format of dataset export: ", visible=True),
             export_method: gr.Radio(label="Do you want to export the data with a generator?", value=read_with_gen[0], choices=read_with_gen, visible=True),
             export_format: gr.Radio(label="Select export format for the filtered dataset: ", value=gen_exports[0], choices=gen_exports, visible=True),
-            submit_export_btn: gr.Button("Export Filtered Dataset", visible=True)
+            submit_export_btn: gr.Button("Export Filtered Dataset", visible=True),
+
+            log_records: gr.HTML(log_info)
         }
         
     except Exception as e:
@@ -240,7 +284,7 @@ def submit_sample(dataset: pd.DataFrame, read_from: Enum, number_of_records: int
     except Exception as e:
         return {error_box: gr.Textbox(value=str(e), visible=True)}
 
-def submit_export(filtered_dataset: pd.DataFrame, export_method_by_gen: bool, format: str) -> None:
+def submit_export(log_record: str, filtered_dataset: pd.DataFrame, export_method_by_gen: bool, format: str) -> None:
     if export_method_by_gen:
         filtered_gen = df_to_gen(filtered_dataset)
         dataExporter = DataExporter(filtered_gen, "Exported_by_gen")
@@ -259,6 +303,8 @@ def submit_export(filtered_dataset: pd.DataFrame, export_method_by_gen: bool, fo
             dataExporter.export_to_pdf()
         case _:
             raise Exception("You selected a wrong format of the export file!")
+    log_info = reformat_export_data_to_log(log_record, export_method_by_gen, format)
+    return {log_records: gr.HTML(log_info)}
 
 def submit_analysis(filtered_dataset: pd.DataFrame):
     result = filtered_dataset.applymap(is_text)
@@ -659,14 +705,15 @@ if __name__ == "__main__":
 
         submit_filter_ds_btn.click(
             submit_filter,
-            [result_box, filter_result, filter_fields, filter_dtype, filter_value, numeric_filter, source_selector],
-            [error_box, filter_result, source_selector, 
+            [log_records, result_box, filter_result, filter_fields, filter_dtype, filter_value, numeric_filter, source_selector],
+            [log_records, error_box, filter_result, source_selector, 
              export_info, export_method, export_format, submit_export_btn]
         )
 
         submit_export_btn.click(
             submit_export,
-            [filter_result, export_method, export_format]
+            [log_records, filter_result, export_method, export_format],
+            [log_records]
         )
 
         ### On-click 'Statistical analysis' section ###
