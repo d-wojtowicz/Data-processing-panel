@@ -38,7 +38,7 @@ from gen_app.source.data_reader import DataReader
 from gen_app.utils.data_generator_by_gen import DataGenerator
 from gen_app.utils.data_exporter import DataExporter
 from gen_app.utils.pandas_extension import DataManager, gen_to_df, df_to_gen
-
+from gen_app.utils.data_stats_calculator import calc
 from gen_app.variables.enumerators import read_by, read_from, reader_tester
 from gen_app.variables.lists import seaborn_libraries, sklearn_libraries, comparision_marks, gen_exports, exports, read_with_gen
 
@@ -93,20 +93,21 @@ def value_handler(source_name: str, df_name: str, read_with_gen: bool = True, lo
         df_name = "Individual"
     
     dataReader = DataReader(df_name, source_name, location_method, structure_method, row_count, by_gen=read_with_gen, dataset_for_generated=dataset)
-    result_ds = dataReader.read_data()
+    dataReaderMeasurements = calc.traceFullMeasure(dataReader.read_data)    
+    result_ds, time, curr_mem, peak_mem = dataReaderMeasurements()
 
     if source_name in ["Seaborn", "Sklearn"]:
         if structure_method == read_by.CHUNKS and read_with_gen == True:
-            return gen_to_df(result_ds)
+            return gen_to_df(result_ds), time, curr_mem, peak_mem
 
     if df_name == "Individual":
         if type(result_ds) == GeneratorType:
             if source_name.endswith((".txt", ".csv", ".json")):
-                return gen_to_df(result_ds)
+                return gen_to_df(result_ds), time, curr_mem, peak_mem
 
-    return result_ds
+    return result_ds, time, curr_mem, peak_mem
 
-def reformat_reader_data_to_log(log_records: str, source_name: str, df_name: str, read_with_gen: bool = True, location_method: str = read_from.TOP, structure_method: str = read_by.ROWS, limit: int = 1, col_number: int=1) -> str:
+def reformat_reader_data_to_log(log_records: str, time: float, curr_mem: int, peak_mem: int, source_name: str, df_name: str, read_with_gen: bool = True, location_method: str = read_from.TOP, structure_method: str = read_by.ROWS, limit: int = 1, col_number: int=1) -> str:
     elem_content = "<h3>DATASET READER - " + datetime.now().strftime("[%Y-%m-%d, %H:%M:%S], ")
     if source_name in ["Seaborn", "Sklearn"]:
         elem_content += (
@@ -115,22 +116,28 @@ def reformat_reader_data_to_log(log_records: str, source_name: str, df_name: str
             "<li>READ_FROM: "           + location_method       + "</li>" +
             "<li>READ_BY: "             + structure_method      + "</li>" +
             "<li>NUM_OF_ROWS: "         + str(limit)            + "</li>" +
-            "<li>TIME: "                + "0s"                  + "</li></ul>"
+            "<li>TIME: "                + str(time)             + " [s]</li>" + 
+            "<li>ACTUAL USAGE OF MEM: " + str(curr_mem)         + " [B]</li>" +
+            "<li>MAX USAGE OF MEM: "    + str(peak_mem)         + " [B]</li></ul>"
         )   
     elif source_name == "Generated":
         elem_content += (
-            "(" + source_name                           + "):</h3>" +
-            "<ul><li>NUM_OF_COLS: " + str(col_number)   + "</li>" + 
-            "<li>NUM_OF_ROWS: "     + str(limit)        + "</li>" +
-            "<li>TIME: "            + "0s"              + "</li></ul>"
+            "(" + source_name                               + "):</h3>" +
+            "<ul><li>NUM_OF_COLS: "     + str(col_number)   + "</li>" + 
+            "<li>NUM_OF_ROWS: "         + str(limit)        + "</li>" +
+            "<li>TIME: "                + str(time)         + " [s]</li>" + 
+            "<li>ACTUAL USAGE OF MEM: " + str(curr_mem)     + " [B]</li>" +
+            "<li>MAX USAGE OF MEM: "    + str(peak_mem)     + " [B]</li></ul>"
         )
     elif source_name == "Individual":
         global individual_dataset_path
         df_name = os.path.basename(individual_dataset_path)
         elem_content += (
-            "(" + source_name       + ", " + df_name        + "):</h3>" +
-            "<ul><li>READ_BY_GEN: " + str(read_with_gen)    + "</li>" +
-            "<li>TIME: "            + "0s"                  + "</li></ul>"
+            "(" + source_name           + ", " + df_name        + "):</h3>" +
+            "<ul><li>READ_BY_GEN: "     + str(read_with_gen)    + "</li>" +
+            "<li>TIME: "                + str(time)             + " [s]</li>" + 
+            "<li>ACTUAL USAGE OF MEM: " + str(curr_mem)         + " [B]</li>" +
+            "<li>MAX USAGE OF MEM: "    + str(peak_mem)         + " [B]</li></ul>"
         )
     else:
         raise Exception("Wrong source!")
@@ -143,7 +150,7 @@ def reformat_reader_data_to_log(log_records: str, source_name: str, df_name: str
 
     return start_of_table + new_elem + end_of_table
 
-def reformat_filter_data_to_log(log_records: str, col_name: str, col_dtype: str, filter_value: Union[int, str, float], numeric_comparator: str = "-", operate_on_filtered: bool=False):
+def reformat_filter_data_to_log(log_records: str, time: float, curr_mem: int, peak_mem: int, col_name: str, col_dtype: str, filter_value: Union[int, str, float], numeric_comparator: str = "-", operate_on_filtered: bool=False):
     if col_dtype == "Str":
         numeric_comparator = "None"
 
@@ -159,7 +166,9 @@ def reformat_filter_data_to_log(log_records: str, col_name: str, col_dtype: str,
         "<li>COL_DTYPE: "               + col_dtype             + "</li>" +
         "<li>FILTER BY: "               + str(filter_value)     + "</li>" +
         "<li>COMPARATOR (ONLY IF NUM): "+ numeric_comparator    + "</li>" +
-        "<li>TIME: "                    + "0s"                  + "</li></ul>"
+        "<li>TIME: "                    + str(time)             + " [s]</li>" + 
+        "<li>ACTUAL USAGE OF MEM: "     + str(curr_mem)         + " [B]</li>" +
+        "<li>MAX USAGE OF MEM: "        + str(peak_mem)         + " [B]</li></ul>"
     )   
 
     new_elem = "<tr><td>" + elem_content + "</td></tr>"
@@ -170,12 +179,14 @@ def reformat_filter_data_to_log(log_records: str, col_name: str, col_dtype: str,
 
     return start_of_table + new_elem + end_of_table
 
-def reformat_export_data_to_log(log_records: str, export_by_gen: bool, format: str) -> str:
+def reformat_export_data_to_log(log_records: str, time: float, curr_mem: int, peak_mem: int, export_by_gen: bool, format: str) -> str:
     elem_content = (
         "<h3>DATASET EXPORT - " + datetime.now().strftime("[%Y-%m-%d, %H:%M:%S]:</h3>") +
         "<ul><li>EXPORT_BY_GEN: "   + str(export_by_gen)+ "</li>" +
         "<li>FORMAT: "              + format            + "</li>" +
-        "<li>TIME: "                + "0s"              + "</li></ul>"
+        "<li>TIME: "                + str(time)         + " [s]</li>" + 
+        "<li>ACTUAL USAGE OF MEM: " + str(curr_mem)     + " [B]</li>" +
+        "<li>MAX USAGE OF MEM: "    + str(peak_mem)     + " [B]</li></ul>"
     )   
     
     new_elem = "<tr><td>" + elem_content + "</td></tr>"
@@ -191,9 +202,10 @@ def submit_gen(col_number: int, row_number: int, log_record: str):
         dataGen = DataGenerator(int(col_number), int(row_number))
 
         global generated_dataset
-        generated_dataset = dataGen.generate_dataframe_by_gen()
-        generated_dataset_to_df = value_handler(source_name="Generated", df_name="Generated", read_with_gen=True)
-        log_info = reformat_reader_data_to_log(log_record, source_name="Generated", df_name="Generated", limit=row_number, col_number=col_number)
+        generate_dataset_measures = calc.traceFullMeasure(dataGen.generate_dataframe_by_gen)
+        generated_dataset, time, curr_mem, peak_mem = generate_dataset_measures()
+        generated_dataset_to_df, _, _, _ = value_handler(source_name="Generated", df_name="Generated", read_with_gen=True)
+        log_info = reformat_reader_data_to_log(log_record, time, curr_mem, peak_mem, source_name="Generated", df_name="Generated", limit=row_number, col_number=col_number)
         return {
             dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
             gen_info_text: gr.Text("The dataset was successfully generated!", visible=True),
@@ -229,8 +241,8 @@ def submit_file(file_reader):
         return {error_box: gr.Textbox(value="First you have to select the file!", visible=True)}
 
 def submit_conf(source_name: str, df_name: str, read_with_gen: bool, location_method: str, structure_method: str, limit: str, log_record: str):    
-    dataset = value_handler(source_name, df_name, read_with_gen, location_method, structure_method, limit)
-    log_info = reformat_reader_data_to_log(log_record, source_name, df_name, read_with_gen, location_method, structure_method, limit)
+    dataset, time, curr_mem, peak_mem = value_handler(source_name, df_name, read_with_gen, location_method, structure_method, limit)
+    log_info = reformat_reader_data_to_log(log_record, time, curr_mem, peak_mem, source_name, df_name, read_with_gen, location_method, structure_method, limit)
     return {
         output_result_col: gr.Column(visible=True),
         result_box: gr.DataFrame(label="Result: ", value=pd.DataFrame(dataset), interactive=1),
@@ -247,15 +259,18 @@ def submit_filter(log_record: str, dataset: pd.DataFrame, filtered_dataset: pd.D
         
         filtered_dataset = pd.DataFrame()
         if col_dtype == "Str":
-            filtered_dataset = dataManager.get_df_by_category(col_name, filter_value.split(","))
+            cat_filter_measure = calc.traceFullMeasure(dataManager.get_df_by_category)
+            filtered_dataset, time, curr_mem, peak_mem = cat_filter_measure(col_name, filter_value.split(","))
         elif col_dtype == "Int":
             filter_value = [int(elem) for elem in filter_value.split(",")]
-            filtered_dataset = dataManager.get_df_by_numeric(col_name, filter_value, numeric_comparator)
+            num_filter_measure = calc.traceFullMeasure(dataManager.get_df_by_numeric)
+            filtered_dataset, time, curr_mem, peak_mem = num_filter_measure(col_name, filter_value, numeric_comparator)
         elif col_dtype == "Float":
             filter_value = [float(elem) for elem in filter_value.split(",")]
-            filtered_dataset = dataManager.get_df_by_numeric(col_name, filter_value, numeric_comparator)
+            num_filter_measure = calc.traceFullMeasure(dataManager.get_df_by_numeric)
+            filtered_dataset, time, curr_mem, peak_mem = num_filter_measure(col_name, filter_value, numeric_comparator)
 
-        log_info = reformat_filter_data_to_log(log_record, col_name, col_dtype, filter_value, numeric_comparator, operate_on_filtered)
+        log_info = reformat_filter_data_to_log(log_record, time, curr_mem, peak_mem, col_name, col_dtype, filter_value, numeric_comparator, operate_on_filtered)
         return {
             filter_result: filtered_dataset, 
             source_selector: gr.Checkbox(label="Do you want to perform filtering on the following dataset?", visible=True),
@@ -292,18 +307,20 @@ def submit_export(log_record: str, filtered_dataset: pd.DataFrame, export_method
         dataExporter = DataExporter(filtered_dataset, "Exported_by_df")
     match format:
         case "TXT":
-            dataExporter.export_to_txt()
+            exportData = calc.traceFullMeasure(dataExporter.export_to_txt)
         case "JSON":
-            dataExporter.export_to_json()
+            exportData = calc.traceFullMeasure(dataExporter.export_to_json)
         case "CSV":
-            dataExporter.export_to_csv()
+            exportData = calc.traceFullMeasure(dataExporter.export_to_csv)
         case "XLSX":
-            dataExporter.export_to_xlsx()
+            exportData = calc.traceFullMeasure(dataExporter.export_to_xlsx)
         case "PDF":
-            dataExporter.export_to_pdf()
+            exportData = calc.traceFullMeasure(dataExporter.export_to_pdf)
         case _:
             raise Exception("You selected a wrong format of the export file!")
-    log_info = reformat_export_data_to_log(log_record, export_method_by_gen, format)
+        
+    _, time, curr_mem, peak_mem = exportData()
+    log_info = reformat_export_data_to_log(log_record, time, curr_mem, peak_mem, export_method_by_gen, format)
     return {log_records: gr.HTML(log_info)}
 
 def submit_analysis(filtered_dataset: pd.DataFrame):
