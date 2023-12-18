@@ -36,6 +36,7 @@ import seaborn as sns
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from gen_app.source.data_reader import DataReader
 from gen_app.utils.data_generator_by_gen import DataGenerator
+from gen_app.utils.not_generators.data_generator_by_obj import DataGeneratorObj
 from gen_app.utils.data_exporter import DataExporter
 from gen_app.utils.pandas_extension import DataManager, gen_to_df, df_to_gen
 from gen_app.utils.data_stats_calculator import calc
@@ -123,7 +124,8 @@ def reformat_reader_data_to_log(log_records: str, time: float, curr_mem: int, pe
     elif source_name == "Generated":
         elem_content += (
             "(" + source_name                               + "):</h3>" +
-            "<ul><li>NUM_OF_COLS: "     + str(col_number)   + "</li>" + 
+            "<ul><li>READ_BY_GEN: "     + str(read_with_gen)+ "</li>" +
+            "<li>NUM_OF_COLS: "         + str(col_number)   + "</li>" + 
             "<li>NUM_OF_ROWS: "         + str(limit)        + "</li>" +
             "<li>TIME: "                + str(time)         + " [s]</li>" + 
             "<li>ACTUAL USAGE OF MEM: " + str(curr_mem)     + " [B]</li>" +
@@ -197,24 +199,40 @@ def reformat_export_data_to_log(log_records: str, time: float, curr_mem: int, pe
 
     return start_of_table + new_elem + end_of_table
 
-def submit_gen(col_number: int, row_number: int, log_record: str):
+def submit_gen(col_number: int, row_number: int, by_gen: bool, log_record: str):
     try:
-        dataGen = DataGenerator(int(col_number), int(row_number))
-
         global generated_dataset
-        generate_dataset_measures = calc.traceFullMeasure(dataGen.generate_dataframe_by_gen)
+        if by_gen:
+            dataGen = DataGenerator(int(col_number), int(row_number))
+            generate_dataset_measures = calc.traceFullMeasure(dataGen.generate_dataframe_by_gen)
+        else:
+            dataGen = DataGeneratorObj(int(col_number), int(row_number))
+            generate_dataset_measures = calc.traceFullMeasure(dataGen.generate_dataframe_by_obj)
+
         generated_dataset, time, curr_mem, peak_mem = generate_dataset_measures()
-        generated_dataset_to_df, _, _, _ = value_handler(source_name="Generated", df_name="Generated", read_with_gen=True)
-        log_info = reformat_reader_data_to_log(log_record, time, curr_mem, peak_mem, source_name="Generated", df_name="Generated", limit=row_number, col_number=col_number)
-        return {
-            dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
-            gen_info_text: gr.Text("The dataset was successfully generated!", visible=True),
-            output_conf_col: gr.Column(visible=False),
-            output_result_col: gr.Column(visible=True),
-            individual_dataset_col: gr.Column(visible=False),
-            result_box: gr.DataFrame(label="Result: ", value=pd.DataFrame(gen_to_df(generated_dataset_to_df)), interactive=1),
-            log_records: gr.HTML(log_info)
-        }
+        generated_dataset_to_df, _, _, _ = value_handler(source_name="Generated", df_name="Generated", read_with_gen=by_gen)
+        log_info = reformat_reader_data_to_log(log_record, time, curr_mem, peak_mem, source_name="Generated", df_name="Generated", limit=row_number, col_number=col_number, read_with_gen=by_gen)
+        
+        if by_gen:
+            return {
+                dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
+                gen_info_text: gr.Text("The dataset was successfully generated!", visible=True),
+                output_conf_col: gr.Column(visible=False),
+                output_result_col: gr.Column(visible=True),
+                individual_dataset_col: gr.Column(visible=False),
+                result_box: gr.DataFrame(label="Result: ", value=pd.DataFrame(gen_to_df(generated_dataset_to_df)), interactive=1),
+                log_records: gr.HTML(log_info)
+            }
+        else:
+            return {
+                dataset_box: gr.Radio(label="Enter the dataset name: ", visible=False),
+                gen_info_text: gr.Text("The dataset was successfully generated!", visible=True),
+                output_conf_col: gr.Column(visible=False),
+                output_result_col: gr.Column(visible=True),
+                individual_dataset_col: gr.Column(visible=False),
+                result_box: gr.DataFrame(label="Result: ", value=generated_dataset_to_df, interactive=1),
+                log_records: gr.HTML(log_info)
+            }
     except Exception as e:
         return {error_box: gr.Textbox(value=str(e), visible=True)}
 
@@ -385,6 +403,7 @@ def turn_configuration(source_name: str):
         output_conf_col: gr.Column(visible=(source_name=="Seaborn" or source_name=="Sklearn")),
 
         read_method_box: gr.Radio(label="Do you want to read the data with a generator?", value=None, choices=read_with_gen),
+        read_method_box_gen: gr.Radio(label="Do you want to read the data with a generator?", value=read_with_gen[0], choices=read_with_gen),
         location_method_box: gr.Radio(label="Please select the row sampling type: ", value="Top", choices=read_from.list(), visible=False),
         structure_method_box: gr.Radio(label="Please select the method of structure build while data reading: ", value="Normal", choices=read_by.list(), visible=False),
         limit_box: gr.Slider(label="Please select number of records: ", minimum=1, maximum=10000, value=1, step=5, visible=False),
@@ -603,6 +622,7 @@ if __name__ == "__main__":
                         with gr.Column(visible=False) as generated_dataset_col:
                             col_number = gr.Number(label="Enter number of columns: ", value=1, minimum=1, maximum=50)
                             row_number = gr.Number(label="Enter number of rows: ", value=1, minimum=1, maximum=10000)
+                            read_method_box_gen = gr.Radio(label="Do you want to read the data with a generator?", value=read_with_gen[0], choices=read_with_gen)
                             submit_gen_btn = gr.Button("Generate dataset")
                             gen_info_text = gr.Text(visible=False)
 
@@ -697,7 +717,7 @@ if __name__ == "__main__":
         ### On-click 'Dataset' section ###
         submit_gen_btn.click(
             submit_gen,
-            [col_number, row_number, log_records],
+            [col_number, row_number, read_method_box_gen, log_records],
             [error_box, dataset_box, output_conf_col, gen_info_text, individual_dataset_col, output_result_col, result_box, log_records]
         )
 
@@ -756,7 +776,7 @@ if __name__ == "__main__":
         source_box.change(
             turn_configuration,
             [source_box],
-            [error_box, read_method_box, location_method_box, structure_method_box, limit_box, submit_conf_btn, dataset_box, output_conf_col, filter_fields, generated_dataset_col, individual_dataset_col, output_result_col, gen_info_text, result_box, export_info, export_method, export_format, submit_export_btn]
+            [error_box, read_method_box, read_method_box_gen, location_method_box, structure_method_box, limit_box, submit_conf_btn, dataset_box, output_conf_col, filter_fields, generated_dataset_col, individual_dataset_col, output_result_col, gen_info_text, result_box, export_info, export_method, export_format, submit_export_btn]
         )
         
         read_method_box.change(
