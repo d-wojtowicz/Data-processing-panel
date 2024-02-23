@@ -1,4 +1,4 @@
-# generator-app
+# Data-processing-panel
 Praca inżynierska
 "Projekt efektywnej aplikacji wykorzystującej generatory z użyciem języka Python"
 
