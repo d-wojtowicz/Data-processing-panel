@@ -6,10 +6,11 @@ Celem pracy jest stworzenie projektu efektywnej aplikacji
 wykorzystującej język programowania Python, która ilustruje
 możliwości użycia wszelkiego rodzaju generatorów - specjalnych
 obiektów umożliwiających skrócenie czasu działania programów
-oraz oszczędność wykorzystanej pamięci.
+oraz oszczędność wykorzystanej pamięci. Jej działanie polega 
+na filtrowaniu oraz opcjonalnej analizie danych i konwersji
+rozszerzeń plików przy eksporcie. 
 
 Dominik Wojtowicz
-nr indeksu: 205881
 
 
 
@@ -17,9 +18,6 @@ nr indeksu: 205881
 Python version: 3.11.4
 System: Windows
 Potrzebne do pełnego działania programu biblioteki oraz moduły zawarte zostały w pliku requirements.txt.
-*W przypadku zaimplementowania dodatkowych bibliotek należy wygenerować nowy plik requirements.txt poprzez komendę:
-
-"pip freeze >> requirements.txt"
 
 
 
