@@ -12,6 +12,23 @@ rozszerzeń plików przy eksporcie.
 
 Dominik Wojtowicz
 
+**Dataset Tab**
+![image](https://github.com/d-wojtowicz/Data-processing-panel/assets/126921476/f13fdedb-002f-4a4f-8b72-2f5bbd15a31c)
+
+**Details & Filtering Tab**
+![image](https://github.com/d-wojtowicz/Data-processing-panel/assets/126921476/cd4308c3-16f2-4ae6-bbe6-04b8547b2600)
+
+![image](https://github.com/d-wojtowicz/Data-processing-panel/assets/126921476/fe3f8fb0-1268-4f94-936a-e76ebdca0d81)
+
+![image](https://github.com/d-wojtowicz/Data-processing-panel/assets/126921476/824c77b0-7c55-49e3-978e-d7dfc894e0a9)
+
+**Statistical Analysis Tab**
+![image](https://github.com/d-wojtowicz/Data-processing-panel/assets/126921476/b360fd4f-b638-4a01-99f8-56990a2e3274)
+
+![image](https://github.com/d-wojtowicz/Data-processing-panel/assets/126921476/c9d35b98-64dc-4423-b047-744a72b9fb4a)
+
+**Logs Tab**
+![image](https://github.com/d-wojtowicz/Data-processing-panel/assets/126921476/f011307c-fdc3-4398-b7cd-e1d335e647ce)
 
 
 # Wymagania
